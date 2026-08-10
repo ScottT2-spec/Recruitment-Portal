@@ -1,0 +1,763 @@
+PRD — Simple Recruitment Portal for Telesales
+1. Product Overview
+Build a simple, mobile-first recruitment portal for hiring Telesales Representatives.
+The system should allow candidates to:
+View the telesales job opportunity.
+Understand responsibilities, salary, commission structure, requirements, and employment terms.
+Submit an application.
+Receive confirmation and stage updates through email and WhatsApp.
+Receive interview scheduling information when shortlisted.
+The internal recruitment team should have a simple admin dashboard where they can:
+View all applicants.
+Review applications.
+Filter applicants.
+Move applicants through recruitment stages.
+Schedule interviews.
+Track interview attendance.
+Mark candidates as recruited or rejected.
+Send automatic email and WhatsApp notifications when an applicant's stage changes.
+This is intended to be a lightweight recruitment application, not a full HR management system.
+
+2. Primary Goal
+Create a fast and simple system that allows the company to recruit a large number of telesales representatives without managing applicants manually through spreadsheets, WhatsApp chats, and email.
+The system should provide one clear recruitment pipeline:
+Application → Review → Interview → Recruited
+The experience should be simple enough for applicants to complete entirely from a mobile phone.
+
+3. User Types
+Candidate
+A person applying for the Telesales role.
+Candidates do not require a traditional account/password.
+Their application can be identified using:
+Application ID
+Email address
+Phone number
+Admin / Recruitment Team
+Internal users responsible for reviewing and managing applicants.
+Admins must log in before accessing recruitment information.
+
+4. Public Recruitment Page
+Create a clean, modern, mobile-first recruitment landing page.
+Suggested URL:
+/careers/telesales
+The page should contain the following sections.
+Job Title
+Telesales Representative
+Job Summary
+A short explanation of the role and what the candidate will be responsible for.
+Example:
+The Telesales Representative will contact potential customers, introduce the company's products/services, explain their benefits, follow up with prospects, and convert qualified prospects into paying customers.
+Responsibilities
+Example responsibilities:
+Make outbound calls to prospective customers.
+Introduce and explain the company's products or services.
+Understand customer needs and recommend appropriate solutions.
+Follow up with interested prospects.
+Convert qualified prospects into paying customers.
+Maintain accurate records of calls and customer conversations.
+Update sales activities and customer information.
+Meet daily, weekly, and monthly sales targets.
+Attend required sales training and team meetings.
+Maintain professional communication with prospects and customers.
+Requirements
+Example:
+Good spoken English.
+Strong communication skills.
+Comfortable speaking with customers on the phone.
+Ability to follow up consistently.
+Basic smartphone and internet literacy.
+Ability to work toward sales targets.
+Previous telesales or customer service experience is an advantage but may not be mandatory.
+Compensation
+Compensation information should be configurable from the admin/backend.
+Display:
+Salary Range
+₦[Minimum Salary] – ₦[Maximum Salary] per month
+Commission
+Clearly explain the sales commission structure.
+For example:
+Commission per successful sale.
+Performance bonuses where applicable.
+Monthly or weekly commission payment terms.
+The exact salary and commission numbers must be editable without changing application code.
+Employment Terms
+Display information such as:
+Full-time / Part-time
+Remote / Hybrid / On-site
+Working days
+Working hours
+Probation period, if applicable
+Performance expectations
+Payment schedule
+All terms should be editable from the backend.
+Call to Action
+Primary button:
+Apply Now
+This should scroll to or open the application form.
+
+5. Candidate Application Form
+The application form must be optimized for mobile devices.
+It should be simple enough to complete within approximately 3–5 minutes.
+Required Fields
+Personal Information
+First Name
+Last Name
+Email Address
+Phone Number
+WhatsApp Number
+Gender — optional/configurable
+Date of Birth — optional/configurable
+Location
+Country
+State
+City / Local Government Area
+Country and State should use structured dropdown fields where possible.
+For Nigeria, states should be selectable from a predefined list.
+Professional Information
+Highest Education Level
+Current Employment Status
+Previous Telesales Experience — Yes/No
+Previous Sales Experience — Yes/No
+Years/Months of Sales Experience
+Previous Company — optional
+Current/Previous Role — optional
+Candidate Assessment Questions
+Keep assessment questions short.
+Examples:
+Why do you want to work in telesales?
+Are you comfortable making outbound calls every day?
+Yes
+No
+Do you have access to a smartphone?
+Yes
+No
+Do you have reliable internet access?
+Yes
+No
+When can you start?
+Immediately
+Within 1 week
+Within 2 weeks
+More than 2 weeks
+Preferred working arrangement
+Remote
+On-site
+Hybrid
+Any
+Documents
+Optional:
+CV / Resume upload
+Accepted formats:
+PDF
+DOC
+DOCX
+Set a reasonable file-size limit.
+
+6. Application Completion Tracking
+The system should distinguish between:
+Started Application
+Candidate has entered enough information to identify them, such as email or phone number, but has not submitted the application.
+Completed Application
+Candidate successfully submitted the full application.
+Where technically practical, partially completed applications should be saved so recruitment administrators can see abandonment numbers.
+
+7. Application Confirmation
+After successful submission, show a confirmation page.
+Example message:
+Application Submitted Successfully
+Thank you for applying for the Telesales Representative position.
+Our recruitment team will review your application. If you are selected for the next stage, you will receive an update through email and WhatsApp.
+Application ID:
+APP-XXXXXX
+The candidate should also receive the same confirmation through email.
+WhatsApp confirmation can also be sent where configured.
+
+8. Recruitment Pipeline
+Every completed application should have a recruitment status.
+Use the following primary stages:
+1. Application Received
+Candidate has completed the application.
+2. Under Review
+Recruitment team is reviewing the candidate.
+3. Interview
+Candidate has been selected and scheduled for an interview.
+Interview sub-status:
+Not Scheduled
+Scheduled
+Attended
+Did Not Attend
+4. Recruited
+Candidate successfully passed the recruitment process.
+Additional Status
+Include:
+Rejected
+This can happen from the Review or Interview stage.
+Optional:
+Withdrawn
+Candidate is no longer interested.
+
+9. Admin Dashboard
+Suggested URL:
+/admin/recruitment
+Admin authentication is required.
+The dashboard should immediately provide recruitment performance information.
+Dashboard Summary Cards
+Show:
+Total Applications Started
+Number of people who started an application.
+Incomplete Applications
+Started but not submitted.
+Completed Applications
+Successfully submitted applications.
+Under Review
+Applicants currently being reviewed.
+Interviews Scheduled
+Candidates with upcoming interviews.
+Total Interview Attendance
+Number of applicants marked as having attended an interview.
+Did Not Attend
+Candidates who missed scheduled interviews.
+Recruited
+Total candidates successfully recruited.
+Rejected
+Total rejected candidates.
+
+10. Applicant List
+The main admin screen should contain a searchable table/list of applicants.
+Columns:
+Applicant Name
+Application ID
+Phone Number
+Email
+Country
+State
+City
+Application Date
+Current Stage
+Interview Date
+Interview Attendance
+Assigned Recruiter — optional
+Last Updated
+On mobile, this can display as cards instead of a wide table.
+
+11. Search, Sort and Filters
+Admins should be able to filter applicants by:
+Recruitment Stage
+Application Status
+Country
+State
+City
+Application Date
+Interview Date
+Interview Attendance
+Sales Experience
+Telesales Experience
+Start Availability
+Search should support:
+Candidate name
+Email address
+Phone number
+Application ID
+Sorting should support:
+Newest applicants
+Oldest applicants
+Interview date
+State
+Recruitment stage
+
+12. Applicant Profile
+Clicking an applicant should open their complete application.
+Display:
+Candidate Information
+Name
+Phone
+WhatsApp
+Email
+Location
+Education
+Employment status
+Experience
+Application answers
+Uploaded CV
+Recruitment Information
+Display:
+Current stage
+Application date
+Last stage update
+Interview information
+Attendance status
+Recruitment decision
+Internal Notes
+Admins should be able to add notes.
+Example:
+"Candidate communicates clearly and has previous outbound sales experience."
+Notes should not be visible to candidates.
+
+13. Applicant Stage Management
+Admin should be able to change an applicant's stage directly from their profile.
+Example:
+Application Received → Under Review
+Under Review → Interview
+Interview → Recruited
+or
+Under Review → Rejected
+Interview → Rejected
+Every stage change should:
+Update the applicant record.
+Store the date/time of the change.
+Record which admin made the change.
+Trigger the appropriate notification where required.
+
+14. Interview Scheduling
+When an applicant is moved to Interview, the admin should be able to enter:
+Interview Date
+Interview Time
+Time Zone
+Interview Type
+Options:
+Phone Call
+WhatsApp Call
+Google Meet
+Physical Interview
+Other
+If online:
+Meeting Link
+If physical:
+Interview Address
+Optional:
+Interview instructions
+After scheduling, the applicant receives an email and WhatsApp message.
+
+15. Interview Attendance
+After the interview date, the recruiter should be able to mark:
+Attended
+Did Not Attend
+The dashboard should calculate attendance totals from this information.
+
+16. Notifications
+The application should support:
+Email
+WhatsApp
+Notifications should be triggered automatically for important recruitment events.
+Application Submitted
+Email subject:
+We Received Your Application
+Inform the candidate that the application has been successfully received.
+Selected for Interview
+Send:
+Applicant name
+Interview date
+Interview time
+Interview format
+Meeting link/address
+Instructions
+Example message:
+"Congratulations, {{first_name}}. You have been selected for the interview stage for the Telesales Representative position.
+Your interview is scheduled for {{date}} at {{time}}.
+Interview method: {{interview_type}}
+{{meeting_link_or_address}}
+Please ensure you are available at the scheduled time."
+Interview Reminder
+Optional but recommended.
+Send a reminder:
+24 hours before interview.
+Recruited
+Send a congratulatory message informing the applicant that they have successfully completed the recruitment process and explaining the next step.
+Rejected
+Send a professional rejection message.
+Example:
+"Thank you for your interest in joining our team. After reviewing your application, we will not be progressing your application further at this time.
+We appreciate the time you invested in the recruitment process."
+
+17. Notification Templates
+Notification text should not be hard-coded.
+Admins should be able to configure templates for:
+Application received
+Interview scheduled
+Interview reminder
+Recruited
+Rejected
+Templates should support variables such as:
+{{first_name}}
+{{last_name}}
+{{application_id}}
+{{interview_date}}
+{{interview_time}}
+{{interview_link}}
+{{job_title}}
+
+18. Recruitment Analytics
+Keep analytics simple.
+Dashboard should display:
+Applications by State
+Show number of completed applicants from each state.
+Example:
+Lagos — 420
+Ogun — 110
+Abuja/FCT — 96
+Rivers — 74
+Applications by Country
+Show applicant totals by country.
+Recruitment Funnel
+Display:
+Started Application
+↓
+Completed Application
+↓
+Under Review
+↓
+Interview
+↓
+Attended Interview
+↓
+Recruited
+This makes it easy to identify recruitment conversion rates.
+
+19. Job Configuration
+Admin should have a simple Job Settings page.
+For V1 there may only be one active job: Telesales Representative.
+Editable fields:
+Job Title
+Job Description
+Responsibilities
+Requirements
+Minimum Salary
+Maximum Salary
+Commission Description
+Employment Type
+Work Arrangement
+Working Days
+Working Hours
+Employment Terms
+Application Open/Closed
+Application Deadline — optional
+This prevents developers from changing code whenever salary, commission or terms change.
+
+20. Applicant Data Model
+Minimum applicant record:
+id
+application_id
+first_name
+last_name
+email
+phone
+whatsapp_number
+gender
+date_of_birth
+
+country
+state
+city
+
+education_level
+employment_status
+sales_experience
+telesales_experience
+experience_duration
+previous_company
+previous_role
+
+reason_for_applying
+comfortable_with_calls
+has_smartphone
+has_internet
+start_availability
+preferred_work_arrangement
+
+cv_url
+
+application_status
+recruitment_stage
+
+interview_status
+interview_date
+interview_time
+interview_timezone
+interview_type
+interview_link
+interview_address
+
+rejection_reason
+internal_notes
+
+created_at
+submitted_at
+updated_at
+
+
+21. Recruitment History
+Create a separate activity/stage history.
+Example structure:
+id
+applicant_id
+previous_stage
+new_stage
+changed_by
+notes
+created_at
+
+This provides a basic audit trail.
+
+22. Admin User Model
+Minimum fields:
+id
+name
+email
+password_hash
+role
+created_at
+updated_at
+
+Initial roles:
+Admin
+Recruiter
+For the first version, both can have similar permissions.
+
+23. Notification Log
+Maintain a simple notification record.
+id
+applicant_id
+notification_type
+channel
+recipient
+status
+provider_message_id
+sent_at
+created_at
+
+Channels:
+Email
+WhatsApp
+Statuses:
+Pending
+Sent
+Failed
+This allows administrators to know whether a candidate notification was successfully sent.
+
+24. Suggested Admin Navigation
+Keep navigation very small.
+Dashboard
+Recruitment statistics and funnel.
+Applicants
+Applicant database and filters.
+Interviews
+Upcoming interviews and attendance.
+Job Settings
+Job description, salary, commission and terms.
+Notification Templates
+Email and WhatsApp templates.
+Admin Settings
+Admin users and basic configuration.
+
+25. User Experience Requirements
+Mobile First
+The candidate experience must be designed primarily for smartphones.
+Requirements:
+Large form controls.
+Clear typography.
+Minimal typing.
+Dropdowns where appropriate.
+Large Apply/Continue buttons.
+Fast page loading.
+Progress indicator for multi-step forms.
+Form data should not disappear if the user accidentally refreshes the page where practical.
+Suggested application form steps:
+Step 1 — Personal Information
+Step 2 — Location
+Step 3 — Experience
+Step 4 — Assessment
+Step 5 — Review & Submit
+
+26. Design Direction
+The portal should feel:
+Modern
+Clean
+Professional
+Friendly
+Mobile-first
+Simple
+Avoid complicated HR software interfaces.
+Candidate pages should have generous spacing, strong headings, clear cards and simple calls to action.
+Admin screens should prioritize information density and speed.
+
+27. Technical Requirements
+The engineering team may select the implementation stack.
+A suitable AI-generated implementation could use:
+Frontend
+Next.js
+React
+Tailwind CSS
+Backend
+Either:
+Next.js API/server actions
+or a separate backend API.
+Database
+PostgreSQL
+Authentication
+Admin-only authentication.
+Possible options:
+Supabase Auth
+Clerk
+Auth.js
+File Storage
+For CV uploads:
+Supabase Storage
+AWS S3
+Cloudflare R2
+Email
+Integrate with an email provider such as:
+Resend
+SendGrid
+Amazon SES
+WhatsApp
+Integrate using:
+Meta WhatsApp Cloud API
+or an approved WhatsApp Business provider.
+Provider configuration should be stored through environment variables.
+
+28. Security Requirements
+The system contains candidate personal information.
+Minimum security requirements:
+Admin routes require authentication.
+Applicants cannot access other applicant records.
+CV files should not be publicly enumerable.
+Validate all form input server-side.
+Restrict uploaded file types and sizes.
+Protect against duplicate/spam submissions.
+Store passwords securely if password authentication is used.
+Use HTTPS in production.
+Maintain a basic audit trail of recruitment stage changes.
+
+29. Duplicate Application Handling
+Before creating a completed application, check:
+Email address
+Phone number
+If an existing application exists for the same active recruitment campaign, warn the candidate rather than creating multiple records.
+Admin may still manually allow duplicates where necessary.
+
+30. Key Business Metrics
+The system should make the following numbers easily visible:
+Total application starts
+Total completed applications
+Completion rate
+Applicants by state
+Applicants by country
+Applicants under review
+Applicants invited for interviews
+Interviews attended
+Interview no-shows
+Applicants recruited
+Applicants rejected
+Interview-to-recruit conversion rate
+Application-to-recruit conversion rate
+
+31. V1 Scope
+The first release should focus only on:
+Public telesales recruitment page.
+Job information.
+Mobile application form.
+Application submission.
+Incomplete application tracking.
+Admin authentication.
+Applicant dashboard.
+Applicant search and filtering.
+Applicant profiles.
+Recruitment stages.
+Interview scheduling.
+Interview attendance.
+Email notifications.
+WhatsApp notifications.
+Job settings.
+Basic recruitment analytics.
+
+32. Out of Scope for V1
+Do NOT build the following unless specifically requested later:
+Employee onboarding.
+Payroll.
+Attendance management.
+Employee HR records.
+Leave management.
+Performance management.
+Background checks.
+Complex interview scoring systems.
+Multiple HR departments.
+Applicant login/password accounts.
+Full applicant tracking system features.
+AI candidate ranking.
+Video interviews.
+Complex calendar integrations.
+The goal is recruitment simplicity.
+
+33. Core User Journey
+Candidate
+Recruitment Page
+      ↓
+Read Job Details
+      ↓
+Apply
+      ↓
+Complete Application
+      ↓
+Application Confirmation
+      ↓
+Application Reviewed
+      ↓
+Interview Invitation
+      ↓
+Attend Interview
+      ↓
+Recruited / Rejected
+
+Recruiter
+Login
+  ↓
+Dashboard
+  ↓
+View Applicants
+  ↓
+Open Applicant
+  ↓
+Review Application
+  ↓
+Move to Interview
+  ↓
+Schedule Interview
+  ↓
+System Sends Email + WhatsApp
+  ↓
+Mark Attendance
+  ↓
+Move to Recruited / Rejected
+
+
+34. Acceptance Criteria
+The V1 product is considered complete when:
+A candidate can view the telesales role on a mobile device.
+Salary, commission and employment terms are clearly visible.
+A candidate can complete and submit an application.
+Started but incomplete applications can be counted.
+Completed applications appear immediately on the admin dashboard.
+Admin can search applicants.
+Admin can filter applicants by state and country.
+Admin can open and review an applicant.
+Admin can move applicants between recruitment stages.
+Admin can schedule an interview.
+Candidate receives an interview notification through email.
+Candidate can receive an interview notification through WhatsApp when the WhatsApp integration is enabled.
+Admin can mark interview attendance.
+Admin can mark a candidate as recruited.
+Admin can reject a candidate.
+Dashboard shows recruitment funnel statistics.
+Dashboard shows applicants grouped by state.
+Salary, commission and job terms can be changed without changing the source code.
+Candidate-facing pages are fully usable on mobile phones.
+
+35. Product Principle
+The main principle for this product is:
+Every action required to recruit a telesales representative should be achievable in a few clicks.
+Do not build a complicated ATS.
+The application should primarily help the recruitment team answer four questions:
+Who applied?
+Who should we interview?
+Who attended the interview?
+Who did we recruit?
