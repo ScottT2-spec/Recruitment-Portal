@@ -31,9 +31,13 @@ app.use(cookieSession({
   maxAge: 12 * 60 * 60 * 1000
 }));
 
-// Ensure DB schema/seed data exists before handling any request
+// Serve the frontend (public/) first — the site should load even if the
+// database isn't configured yet. Only /api/* routes need the database.
+app.use(express.static(path.join(__dirname, 'public')));
+
+// Ensure DB schema/seed data exists before handling any API request
 // (memoized in src/db.js so this only runs once per warm instance).
-app.use(async (req, res, next) => {
+app.use('/api', async (req, res, next) => {
   try {
     await db.ready();
     next();
@@ -52,8 +56,6 @@ const upload = multer({
     cb(ok ? null : new Error('Only PDF, DOC, or DOCX files are allowed'), ok);
   }
 });
-
-app.use(express.static(path.join(__dirname, 'public')));
 
 // Small helper: wraps an async route handler so rejected promises hit Express error handling.
 const ah = fn => (req, res, next) => fn(req, res, next).catch(next);
