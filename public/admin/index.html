@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Recruitment Console</title>
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+
+<div class="mobile-tabs" id="mobileTabs"></div>
+
+<div class="admin-shell">
+  <aside class="sidebar">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1.1L6.6 10.8z" fill="currentColor"/></svg>
+      </span>
+      Recruitment
+    </div>
+    <nav id="sideNav"></nav>
+    <div class="sidebar-foot">
+      <div class="sidebar-user">
+        <div id="userName">—</div>
+        <div class="role" id="userRole">—</div>
+      </div>
+      <button class="btn btn-outline btn-sm btn-block" id="logoutBtn" style="border-color: rgba(255,255,255,0.2); color: #fff;">Log out</button>
+    </div>
+  </aside>
+
+  <main class="main" id="main">
+    <div class="main-head">
+      <h1 id="pageTitle">Dashboard</h1>
+    </div>
+    <div id="content"></div>
+  </main>
+</div>
+
+<div class="modal-backdrop" id="modalBackdrop"><div class="modal" id="modalRoot"></div></div>
+<div class="toast" id="toast"></div>
+
+<script src="/js/admin.js"></script>
+</body>
+</html>

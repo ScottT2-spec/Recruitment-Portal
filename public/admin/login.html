@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Admin Login — Telesales Recruitment</title>
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/admin.css">
+</head>
+<body class="admin-body">
+  <div class="login-wrap">
+    <div class="login-card">
+      <div class="login-mark">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1.1L6.6 10.8z" fill="currentColor"/></svg>
+      </div>
+      <h1>Recruitment console</h1>
+      <p class="lede">Sign in to review applicants and manage the pipeline.</p>
+      <form id="loginForm">
+        <div class="field"><label for="email">Email</label><input id="email" type="email" required autocomplete="username"></div>
+        <div class="field"><label for="password">Password</label><input id="password" type="password" required autocomplete="current-password"></div>
+        <div id="loginError" style="color: var(--danger); font-size: 13px; margin-bottom: 10px; display:none;"></div>
+        <button class="btn btn-primary btn-block" type="submit">Sign in</button>
+      </form>
+      <div class="login-hint">Demo admin: admin@company.com / Telesales2026!</div>
+    </div>
+  </div>
+<script>
+document.getElementById('loginForm').addEventListener('submit', async (e) => {
+  e.preventDefault();
+  const email = document.getElementById('email').value;
+  const password = document.getElementById('password').value;
+  const errEl = document.getElementById('loginError');
+  errEl.style.display = 'none';
+  const res = await fetch('/api/admin/login', {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ email, password })
+  });
+  if (res.ok) {
+    location.href = '/admin/';
+  } else {
+    const json = await res.json().catch(() => ({}));
+    errEl.textContent = json.error || 'Unable to sign in.';
+    errEl.style.display = 'block';
+  }
+});
+</script>
+</body>
+</html>

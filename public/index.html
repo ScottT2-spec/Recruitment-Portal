@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Telesales Representative — Careers</title>
+<link rel="stylesheet" href="/css/styles.css">
+<link rel="stylesheet" href="/css/careers.css">
+</head>
+<body>
+
+<header class="topbar">
+  <div class="container topbar-inner">
+    <div class="brand">
+      <span class="brand-mark">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1.1L6.6 10.8z" fill="currentColor"/></svg>
+      </span>
+      Telesales Careers
+    </div>
+    <button class="btn btn-primary" id="topbarApply">Apply now</button>
+  </div>
+</header>
+
+<section class="hero">
+  <div class="hero-grid" aria-hidden="true"></div>
+  <div class="container hero-inner">
+    <span class="eyebrow"><span class="pulse-ring"></span> Now hiring · Applications open</span>
+    <h1 id="jobTitle">Telesales Representative</h1>
+    <p class="hero-lede" id="jobSummary">Loading role details…</p>
+
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <span class="num" id="statSalary">—</span>
+        <span class="lbl">Monthly salary</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num" id="statType">—</span>
+        <span class="lbl">Employment</span>
+      </div>
+      <div class="hero-stat">
+        <span class="num">3–5 min</span>
+        <span class="lbl">To apply</span>
+      </div>
+    </div>
+
+    <div class="hero-cta-row">
+      <button class="btn btn-primary" id="heroApply">Apply now →</button>
+      <span class="hero-cta-note">No account or password needed</span>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>What you'll do</h2>
+      <span class="section-tag">Responsibilities</span>
+    </div>
+    <ul class="check-list" id="responsibilitiesList"></ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>What we're looking for</h2>
+      <span class="section-tag">Requirements</span>
+    </div>
+    <ul class="check-list" id="requirementsList"></ul>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>Pay & commission</h2>
+      <span class="section-tag">Compensation</span>
+    </div>
+    <div class="comp-grid">
+      <div class="comp-card dark">
+        <div class="comp-label">Salary range</div>
+        <div class="comp-value" id="salaryRange">—</div>
+        <div class="comp-desc">Paid monthly, in addition to commission on every sale you close.</div>
+      </div>
+      <div class="comp-card">
+        <div class="comp-label">Commission</div>
+        <div class="comp-value">Uncapped</div>
+        <div class="comp-desc" id="commissionDesc">—</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container">
+    <div class="section-head">
+      <h2>Employment terms</h2>
+      <span class="section-tag">The details</span>
+    </div>
+    <div class="terms-grid" id="termsGrid"></div>
+  </div>
+</section>
+
+<section class="section">
+  <div class="container" style="text-align:center; padding: 20px 0 8px;">
+    <h2 style="margin-bottom:10px;">Ready to get started?</h2>
+    <p class="hero-lede" style="margin:0 auto 22px;">Takes about 3–5 minutes on your phone. You'll get updates by email and WhatsApp.</p>
+    <button class="btn btn-primary" id="bottomApply">Start application →</button>
+  </div>
+</section>
+
+<footer class="site-footer">
+  <div class="container">
+    Already applied? <a href="/status.html" style="text-decoration:underline; font-weight:600;">Check your application status</a>
+  </div>
+</footer>
+
+<!-- Mobile sticky apply bar -->
+<div class="apply-bar">
+  <button class="btn btn-primary btn-block" id="mobileApply">Apply now →</button>
+</div>
+
+<!-- Application drawer -->
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div class="drawer" id="drawer" role="dialog" aria-modal="true" aria-label="Job application form">
+  <div class="drawer-head">
+    <strong style="font-family: var(--font-display); font-size: 16px;">Telesales Representative — Application</strong>
+    <button class="drawer-close" id="drawerClose" aria-label="Close">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+  <div class="drawer-body" id="drawerBody">
+    <div class="stepper" id="stepper"><i class="active"></i><i></i><i></i><i></i><i></i></div>
+    <div id="formSteps"></div>
+  </div>
+  <div class="drawer-foot" id="drawerFoot">
+    <button class="btn btn-outline" id="backBtn" style="display:none;">Back</button>
+    <button class="btn btn-primary btn-block" id="nextBtn">Continue</button>
+  </div>
+</div>
+
+<script src="/js/careers.js"></script>
+</body>
+</html>
