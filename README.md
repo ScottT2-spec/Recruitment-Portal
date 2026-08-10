@@ -4,22 +4,52 @@ A lightweight, mobile-first recruitment portal for hiring Telesales Representati
 
 ## Stack
 
-Deliberately dependency-light so it runs anywhere with just Node — no build step, no external services required to try it out.
-
-- **Backend:** Node.js + Express
-- **Database:** SQLite (via `better-sqlite3`) — a single `data.sqlite` file, zero setup
+- **Backend:** Node.js + Express (exported as a handler so it runs as a Vercel serverless function, or as a normal long-running server anywhere else)
+- **Database:** Postgres, hosted on [Supabase](https://supabase.com) (via `pg`)
 - **Frontend:** Vanilla HTML/CSS/JS (no framework, no bundler)
 - **Auth:** Cookie sessions + bcrypt for the admin console
-- **File uploads:** CVs stored on disk under `public/uploads/`
+- **File uploads:** CVs stored in Supabase Storage (public bucket, auto-created on first upload)
 - **Notifications:** Email + WhatsApp sends are **simulated** and logged to the Notification Log — swap in a real provider in `src/notify.js` when you're ready (see below)
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env      # then edit SESSION_SECRET
+cp .env.example .env      # then fill in SESSION_SECRET, DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
 npm start
 ```
+
+The database schema and seed data (admin user, default job posting, notification templates) are created automatically the first time the app handles a request.
+
+## Deploying: Vercel + Supabase
+
+**1. Create a Supabase project**
+- [supabase.com](https://supabase.com) → New project.
+- Project Settings → API: copy the **Project URL** and the **`service_role` key** (not the `anon` key — the server needs write access to Storage and bypasses RLS with this key).
+- Project Settings → Database → Connection string → select the **Transaction pooler** (port `6543`). Serverless functions open/close connections per-invocation, so you need the pooler, not the direct connection (port `5432`), or you'll exhaust Postgres' connection limit.
+
+**2. Set environment variables in Vercel**
+
+Project → Settings → Environment Variables, add:
+| Key | Value |
+|---|---|
+| `DATABASE_URL` | the pooler connection string from step 1 |
+| `SUPABASE_URL` | Project URL |
+| `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
+| `SESSION_SECRET` | a long random string |
+| `SUPABASE_CV_BUCKET` | optional, defaults to `cvs` |
+
+**3. Deploy**
+
+```bash
+npm i -g vercel   # if you don't have it
+vercel             # first deploy, follow the prompts
+vercel --prod
+```
+
+Or just connect the GitHub repo in the Vercel dashboard and let it auto-deploy on push — `vercel.json` in this repo already routes all traffic to `server.js` so no extra config is needed there.
+
+The first request after deploy creates the Postgres tables, seeds the admin user (`admin@company.com` / `Telesales2026!`), default job posting, and notification templates, and creates the `cvs` Storage bucket — nothing to run manually.
 
 - Careers page → http://localhost:3000/
 - Application status lookup → http://localhost:3000/status.html
@@ -48,19 +78,19 @@ No other code needs to change — the rest of the app already calls `sendNotific
 
 ## Before deploying to production
 
-- Change `SESSION_SECRET` in `.env` to a long random string.
-- Change the seeded admin password (`Telesales2026!`) immediately after first login — there's currently no in-app "change password" flow, so update it directly via a script or the `admins` table.
-- Put the app behind HTTPS.
-- Point `data.sqlite` and `public/uploads/` at persistent storage (a mounted volume, or swap SQLite for Postgres) if deploying to an ephemeral filesystem (e.g. most PaaS/container platforms).
-- Consider moving CV files to S3 / Cloudflare R2 / Supabase Storage instead of local disk if you're running more than one server instance.
+- Change `SESSION_SECRET` to a long random string.
+- Change the seeded admin password (`Telesales2026!`) immediately after first login — there's currently no in-app "change password" flow, so update it directly via SQL against the `admins` table (Supabase's SQL editor works fine).
+- Vercel gives you HTTPS by default.
 
 ## Project structure
 
 ```
-server.js              Express app + all API routes
-src/db.js               SQLite schema + seed data
+server.js              Express app + all API routes; exports the app for Vercel
+src/db.js               Postgres connection, schema, seed data (src/db.js's ready() runs once per warm instance)
 src/notify.js           Notification templating + (simulated) send + logging
+src/storage.js           Supabase Storage upload for CVs
 src/auth.js             Admin session middleware
+vercel.json             Routes all requests to server.js
 public/index.html       Careers page
 public/status.html      Candidate application-status lookup
 public/admin/           Admin login + console (single-page, hash-routed)
@@ -73,13 +103,11 @@ public/css/             Design tokens + page styles
 
 ```bash
 git add -A
-git commit -m "Initial commit: telesales recruitment portal v1"
-git branch -M main
-git remote add origin <your-repo-url>
-git push -u origin main
+git commit -m "Migrate to Postgres/Supabase + Vercel deployment"
+git push
 ```
 
-(`node_modules/`, `data.sqlite`, `.env`, and uploaded CVs are already gitignored.)
+(`node_modules/` and `.env` are gitignored.)
 
 ## Out of scope (per PRD)
 

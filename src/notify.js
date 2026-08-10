@@ -11,11 +11,11 @@ function fillTemplate(body, vars) {
  * In production, swap the two `logSend` calls' status/provider_message_id
  * assignment with real calls to Resend/SendGrid/SES and the WhatsApp Cloud API.
  */
-function sendNotification(applicant, templateKey, extraVars = {}) {
-  const tpl = db.prepare('SELECT * FROM notification_templates WHERE key = ?').get(templateKey);
+async function sendNotification(applicant, templateKey, extraVars = {}) {
+  const tpl = await db.get('SELECT * FROM notification_templates WHERE key = $1', [templateKey]);
   if (!tpl) return;
 
-  const job = db.prepare('SELECT job_title FROM job_settings WHERE id = 1').get();
+  const job = await db.get('SELECT job_title FROM job_settings WHERE id = 1');
   const vars = {
     first_name: applicant.first_name,
     last_name: applicant.last_name,
@@ -31,16 +31,15 @@ function sendNotification(applicant, templateKey, extraVars = {}) {
   const message = fillTemplate(tpl.body, vars);
   const subject = tpl.subject ? fillTemplate(tpl.subject, vars) : null;
 
-  const logStmt = db.prepare(`INSERT INTO notification_log
-    (applicant_id, notification_type, channel, recipient, status, provider_message_id, sent_at)
-    VALUES (?,?,?,?,?,?, datetime('now'))`);
+  const logSend = (channel, recipient) => db.query(
+    `INSERT INTO notification_log
+      (applicant_id, notification_type, channel, recipient, status, provider_message_id, sent_at)
+      VALUES ($1,$2,$3,$4,$5,$6, NOW())`,
+    [applicant.id, templateKey, channel, recipient, 'sent', 'sim-' + Math.random().toString(36).slice(2, 10)]
+  );
 
-  if (applicant.email) {
-    logStmt.run(applicant.id, templateKey, 'email', applicant.email, 'sent', 'sim-' + Math.random().toString(36).slice(2, 10));
-  }
-  if (applicant.whatsapp_number) {
-    logStmt.run(applicant.id, templateKey, 'whatsapp', applicant.whatsapp_number, 'sent', 'sim-' + Math.random().toString(36).slice(2, 10));
-  }
+  if (applicant.email) await logSend('email', applicant.email);
+  if (applicant.whatsapp_number) await logSend('whatsapp', applicant.whatsapp_number);
 
   return { subject, message };
 }
