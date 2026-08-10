@@ -42,10 +42,15 @@ async function loadJob() {
   document.getElementById('termsGrid').innerHTML = terms.map(([label, value]) => `
     <div class="term-item"><div class="t-label">${label}</div><div class="t-value">${value || '—'}</div></div>
   `).join('');
+
+  refreshIcons();
 }
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG'); }
 function listItem(text) {
-  return `<li><span class="ico"><svg viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg></span>${text}</li>`;
+  return `<li><span class="ico"><i data-lucide="check"></i></span>${text}</li>`;
+}
+function refreshIcons() {
+  if (window.lucide) window.lucide.createIcons();
 }
 
 // ---------------- Drawer ----------------
@@ -91,6 +96,7 @@ function renderStep() {
     <h3 class="step-title">${stepLabels[state.step - 1]}</h3>` + stepFns[state.step - 1]();
 
   wireStepInputs();
+  refreshIcons();
 }
 
 function field(name, label, opts = {}) {
@@ -186,7 +192,8 @@ function stepAssessment() {
       <label>CV / Resume (optional)</label>
       <div class="file-drop ${state.cvFile ? 'has-file' : ''}" id="fileDrop">
         <input type="file" id="cvInput" accept=".pdf,.doc,.docx">
-        <span id="fileLabel">${state.cvFile ? '✓ ' + state.cvFile.name : 'Tap to upload PDF, DOC, or DOCX (max 5MB)'}</span>
+        <i data-lucide="${state.cvFile ? 'check-circle' : 'upload-cloud'}"></i>
+        <span id="fileLabel">${state.cvFile ? state.cvFile.name : 'Tap to upload PDF, DOC, or DOCX (max 5MB)'}</span>
       </div>
     </div>
   `;
@@ -247,8 +254,11 @@ function wireStepInputs() {
       const f = fileInput.files[0];
       if (f) {
         state.cvFile = f;
-        document.getElementById('fileDrop').classList.add('has-file');
-        document.getElementById('fileLabel').textContent = '✓ ' + f.name;
+        const drop = document.getElementById('fileDrop');
+        drop.classList.add('has-file');
+        drop.querySelector('i').setAttribute('data-lucide', 'check-circle');
+        document.getElementById('fileLabel').textContent = f.name;
+        refreshIcons();
       }
     });
   }
@@ -309,7 +319,8 @@ async function checkDuplicate() {
   const json = await res.json();
   const banner = document.getElementById('dupBanner');
   if (json.duplicate && banner) {
-    banner.innerHTML = `<div class="banner">⚠️ We already have a completed application matching this email/phone (${json.application_id}). You can still submit — our team will review both.</div>`;
+    banner.innerHTML = `<div class="banner"><i data-lucide="alert-triangle"></i> We already have a completed application matching this email/phone (${json.application_id}). You can still submit — our team will review both.</div>`;
+    refreshIcons();
   }
 }
 
@@ -341,7 +352,7 @@ function renderConfirmation() {
   document.getElementById('formSteps').innerHTML = `
     <div class="confirm-wrap">
       <div class="confirm-icon">
-        <svg width="30" height="30" viewBox="0 0 24 24" fill="none"><path d="M5 12l5 5L19 7" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        <i data-lucide="check"></i>
       </div>
       <h3 style="font-size:22px; margin-bottom:8px;">Application submitted</h3>
       <p class="hero-lede" style="margin:0 auto;">Thank you for applying for the Telesales Representative position. Our recruitment team will review your application. If selected for the next stage, you'll hear from us by email and WhatsApp.</p>
@@ -354,9 +365,11 @@ function renderConfirmation() {
   const foot = document.getElementById('drawerFoot');
   foot.innerHTML = `<button class="btn btn-primary btn-block" id="closeConfirm">Done</button>`;
   document.getElementById('closeConfirm').addEventListener('click', () => { closeDrawer(); location.href = '/'; });
+  refreshIcons();
 }
 
 document.getElementById('backBtn').addEventListener('click', goBack);
 document.getElementById('nextBtn').addEventListener('click', goNext);
 
+refreshIcons();
 loadJob();

@@ -13,7 +13,7 @@
   <div class="container topbar-inner">
     <div class="brand">
       <span class="brand-mark">
-        <svg width="15" height="15" viewBox="0 0 24 24" fill="none"><path d="M6.6 10.8c1.4 2.8 3.8 5.1 6.6 6.6l2.2-2.2c.3-.3.7-.4 1-.2 1.1.4 2.3.6 3.6.6.6 0 1 .4 1 1V20c0 .6-.4 1-1 1C10.7 21 3 13.3 3 4c0-.6.4-1 1-1h3.5c.6 0 1 .4 1 1 0 1.2.2 2.4.6 3.6.1.4 0 .8-.3 1.1L6.6 10.8z" fill="currentColor"/></svg>
+        <i data-lucide="phone-call"></i>
       </span>
       Telesales Careers
     </div>
@@ -30,21 +30,24 @@
 
     <div class="hero-stats">
       <div class="hero-stat">
+        <span class="stat-ico"><i data-lucide="banknote"></i></span>
         <span class="num" id="statSalary">—</span>
         <span class="lbl">Monthly salary</span>
       </div>
       <div class="hero-stat">
+        <span class="stat-ico"><i data-lucide="briefcase"></i></span>
         <span class="num" id="statType">—</span>
         <span class="lbl">Employment</span>
       </div>
       <div class="hero-stat">
+        <span class="stat-ico"><i data-lucide="timer"></i></span>
         <span class="num">3–5 min</span>
         <span class="lbl">To apply</span>
       </div>
     </div>
 
     <div class="hero-cta-row">
-      <button class="btn btn-primary" id="heroApply">Apply now →</button>
+      <button class="btn btn-primary" id="heroApply">Apply now <i data-lucide="arrow-right" style="width:16px;height:16px;"></i></button>
       <span class="hero-cta-note">No account or password needed</span>
     </div>
   </div>
@@ -53,7 +56,10 @@
 <section class="section">
   <div class="container">
     <div class="section-head">
-      <h2>What you'll do</h2>
+      <div class="section-head-left">
+        <span class="section-ico"><i data-lucide="list-checks"></i></span>
+        <h2>What you'll do</h2>
+      </div>
       <span class="section-tag">Responsibilities</span>
     </div>
     <ul class="check-list" id="responsibilitiesList"></ul>
@@ -63,7 +69,10 @@
 <section class="section">
   <div class="container">
     <div class="section-head">
-      <h2>What we're looking for</h2>
+      <div class="section-head-left">
+        <span class="section-ico"><i data-lucide="target"></i></span>
+        <h2>What we're looking for</h2>
+      </div>
       <span class="section-tag">Requirements</span>
     </div>
     <ul class="check-list" id="requirementsList"></ul>
@@ -73,17 +82,26 @@
 <section class="section">
   <div class="container">
     <div class="section-head">
-      <h2>Pay & commission</h2>
+      <div class="section-head-left">
+        <span class="section-ico"><i data-lucide="wallet"></i></span>
+        <h2>Pay & commission</h2>
+      </div>
       <span class="section-tag">Compensation</span>
     </div>
     <div class="comp-grid">
       <div class="comp-card dark">
-        <div class="comp-label">Salary range</div>
+        <div class="comp-icon-row">
+          <div class="comp-label">Salary range</div>
+          <span class="ico-badge"><i data-lucide="banknote"></i></span>
+        </div>
         <div class="comp-value" id="salaryRange">—</div>
         <div class="comp-desc">Paid monthly, in addition to commission on every sale you close.</div>
       </div>
       <div class="comp-card">
-        <div class="comp-label">Commission</div>
+        <div class="comp-icon-row">
+          <div class="comp-label">Commission</div>
+          <span class="ico-badge"><i data-lucide="trending-up"></i></span>
+        </div>
         <div class="comp-value">Uncapped</div>
         <div class="comp-desc" id="commissionDesc">—</div>
       </div>
@@ -94,18 +112,21 @@
 <section class="section">
   <div class="container">
     <div class="section-head">
-      <h2>Employment terms</h2>
+      <div class="section-head-left">
+        <span class="section-ico"><i data-lucide="file-text"></i></span>
+        <h2>Employment terms</h2>
+      </div>
       <span class="section-tag">The details</span>
     </div>
     <div class="terms-grid" id="termsGrid"></div>
   </div>
 </section>
 
-<section class="section">
-  <div class="container" style="text-align:center; padding: 20px 0 8px;">
-    <h2 style="margin-bottom:10px;">Ready to get started?</h2>
+<section class="cta-band">
+  <div class="container" style="text-align:center;">
+    <h2>Ready to get started?</h2>
     <p class="hero-lede" style="margin:0 auto 22px;">Takes about 3–5 minutes on your phone. You'll get updates by email and WhatsApp.</p>
-    <button class="btn btn-primary" id="bottomApply">Start application →</button>
+    <button class="btn btn-primary" id="bottomApply">Start application <i data-lucide="arrow-right" style="width:16px;height:16px;"></i></button>
   </div>
 </section>
 
@@ -117,7 +138,7 @@
 
 <!-- Mobile sticky apply bar -->
 <div class="apply-bar">
-  <button class="btn btn-primary btn-block" id="mobileApply">Apply now →</button>
+  <button class="btn btn-primary btn-block" id="mobileApply">Apply now <i data-lucide="arrow-right" style="width:16px;height:16px;"></i></button>
 </div>
 
 <!-- Application drawer -->
@@ -126,7 +147,7 @@
   <div class="drawer-head">
     <strong style="font-family: var(--font-display); font-size: 16px;">Telesales Representative — Application</strong>
     <button class="drawer-close" id="drawerClose" aria-label="Close">
-      <svg width="14" height="14" viewBox="0 0 24 24" fill="none"><path d="M6 6l12 12M18 6L6 18" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+      <i data-lucide="x"></i>
     </button>
   </div>
   <div class="drawer-body" id="drawerBody">
@@ -139,6 +160,7 @@
   </div>
 </div>
 
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script src="/js/careers.js"></script>
 </body>
 </html>

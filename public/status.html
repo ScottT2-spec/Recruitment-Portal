@@ -7,47 +7,119 @@
 <link rel="stylesheet" href="/css/styles.css">
 <style>
   body { background: var(--surface); }
-  .wrap { max-width: 480px; margin: 0 auto; padding: 48px 20px 80px; }
-  .back-link { font-size: 13.5px; color: var(--muted); text-decoration: none; display: inline-flex; align-items: center; gap: 6px; margin-bottom: 22px; }
-  h1 { font-size: 26px; margin-bottom: 8px; }
-  .lede { color: var(--ink-soft); margin-bottom: 24px; font-size: 14.5px; }
+  .status-hero {
+    background: radial-gradient(ellipse 90% 60% at 15% 0%, rgba(245,183,49,0.16), transparent 55%),
+                linear-gradient(180deg, var(--navy-900) 0%, var(--navy-800) 100%);
+    padding: 40px 0 64px; color: #fff;
+  }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 20px; }
+  .status-hero .wrap { padding-top: 20px; }
+  .back-link {
+    font-size: 13.5px; color: rgba(255,255,255,0.6); text-decoration: none; display: inline-flex;
+    align-items: center; gap: 6px; margin-bottom: 22px; transition: color .15s ease;
+  }
+  .back-link:hover { color: var(--gold-300); }
+  .back-link svg { width: 14px; height: 14px; }
+  .status-hero h1 { font-size: 28px; margin-bottom: 8px; color: #fff; display: flex; align-items: center; gap: 10px; }
+  .status-hero h1 .h-ico {
+    width: 38px; height: 38px; border-radius: 11px; background: rgba(245,183,49,0.14); color: var(--gold-300);
+    display: flex; align-items: center; justify-content: center; flex-shrink: 0;
+  }
+  .status-hero h1 .h-ico svg { width: 19px; height: 19px; }
+  .lede { color: rgba(255,255,255,0.65); margin-bottom: 0; font-size: 14.5px; }
+
+  .lookup-card {
+    background: var(--base); border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+    padding: 26px; margin-top: -40px; position: relative; z-index: 2; border: 1px solid var(--border);
+  }
   .field { margin-bottom: 14px; }
-  .field label { display:block; font-size: 13px; font-weight: 600; margin-bottom: 6px; }
-  .field input { width: 100%; padding: 13px 14px; border: 1.5px solid var(--border); border-radius: 8px; }
+  .field label { display:block; font-size: 13px; font-weight: 700; margin-bottom: 6px; color: var(--ink-soft); }
+  .field .input-wrap { position: relative; }
+  .field .input-wrap svg {
+    position: absolute; left: 14px; top: 50%; transform: translateY(-50%); width: 16px; height: 16px; color: var(--muted);
+  }
+  .field input {
+    width: 100%; padding: 13px 14px 13px 40px; border: 1.5px solid var(--border); border-radius: var(--radius-sm);
+    transition: border-color .12s ease, box-shadow .12s ease;
+  }
+  .field input:focus { border-color: var(--gold-500); outline: none; box-shadow: 0 0 0 4px rgba(234,166,17,0.12); }
+  .divider { display: flex; align-items: center; gap: 12px; color: var(--muted); font-size: 12.5px; margin: 16px 0; }
+  .divider::before, .divider::after { content: ''; flex: 1; height: 1px; background: var(--border); }
+
   .stage-track { display: flex; flex-direction: column; gap: 0; margin-top: 22px; }
-  .stage-item { display: flex; gap: 12px; padding: 10px 0; }
-  .stage-dot { width: 22px; height: 22px; border-radius: 50%; background: var(--surface-alt); flex-shrink: 0; display:flex; align-items:center; justify-content:center; font-size: 11px; }
-  .stage-item.done .stage-dot { background: var(--primary); color: #fff; }
-  .stage-item.current .stage-dot { background: var(--amber); color: #fff; }
+  .stage-item { display: flex; gap: 12px; padding: 10px 0; position: relative; }
+  .stage-item:not(:last-child)::before {
+    content: ''; position: absolute; left: 10px; top: 32px; bottom: -4px; width: 2px; background: var(--border);
+  }
+  .stage-item.done:not(:last-child)::before { background: var(--gold-400); }
+  .stage-dot {
+    width: 22px; height: 22px; border-radius: 50%; background: var(--surface-alt); flex-shrink: 0; display:flex;
+    align-items:center; justify-content:center; font-size: 11px; font-weight: 700; color: var(--ink-soft); z-index: 1;
+  }
+  .stage-dot svg { width: 12px; height: 12px; }
+  .stage-item.done .stage-dot { background: linear-gradient(135deg, var(--gold-300), var(--gold-500)); color: var(--navy-900); }
+  .stage-item.current .stage-dot { background: var(--navy-700); color: #fff; }
+  .stage-item-label { padding-top: 2px; font-size: 14px; font-weight: 600; color: var(--ink-soft); }
+  .stage-item.done .stage-item-label, .stage-item.current .stage-item-label { color: var(--ink); }
+
   #result { display: none; }
-  .status-card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 22px; margin-top: 22px; }
+  .status-card {
+    background: #fff; border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-top: 22px;
+  }
+  .app-id-tag {
+    font-family: var(--font-mono); font-size: 12.5px; color: var(--gold-600); background: var(--gold-tint);
+    display: inline-block; padding: 4px 10px; border-radius: 999px; border: 1px solid rgba(202,138,4,0.15);
+  }
+  .error-msg { display: flex; gap: 8px; align-items: center; color: var(--danger); font-size: 13.5px; margin-top: 10px; }
+  .error-msg svg { width: 15px; height: 15px; flex-shrink: 0; }
+  .interview-note { display: flex; gap: 10px; align-items: flex-start; }
+  .interview-note svg { width: 16px; height: 16px; color: var(--gold-600); flex-shrink: 0; margin-top: 2px; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <a href="/" class="back-link">← Back to job posting</a>
-  <h1>Check your status</h1>
-  <p class="lede">Enter your Application ID, or the email/phone you applied with.</p>
 
-  <div class="field"><label>Application ID</label><input id="appId" placeholder="APP-XXXXXX"></div>
-  <div class="lede" style="text-align:center; margin: 4px 0;">— or —</div>
-  <div class="field"><label>Email address</label><input id="email" type="email" placeholder="you@example.com"></div>
-  <div class="field"><label>Phone number</label><input id="phone" type="tel" placeholder="080..."></div>
-  <button class="btn btn-primary btn-block" id="lookupBtn">Check status</button>
+<div class="status-hero">
+  <div class="wrap">
+    <a href="/" class="back-link"><i data-lucide="arrow-left"></i> Back to job posting</a>
+    <h1><span class="h-ico"><i data-lucide="search-check"></i></span> Check your status</h1>
+    <p class="lede">Enter your Application ID, or the email/phone you applied with.</p>
+  </div>
+</div>
 
-  <div id="error" style="color: var(--danger); font-size: 13.5px; margin-top: 10px;"></div>
+<div class="wrap" style="padding-bottom: 60px;">
+  <div class="lookup-card">
+    <div class="field">
+      <label>Application ID</label>
+      <div class="input-wrap"><i data-lucide="hash"></i><input id="appId" placeholder="APP-XXXXXX"></div>
+    </div>
+    <div class="divider">or</div>
+    <div class="field">
+      <label>Email address</label>
+      <div class="input-wrap"><i data-lucide="mail"></i><input id="email" type="email" placeholder="you@example.com"></div>
+    </div>
+    <div class="field">
+      <label>Phone number</label>
+      <div class="input-wrap"><i data-lucide="phone"></i><input id="phone" type="tel" placeholder="080..."></div>
+    </div>
+    <button class="btn btn-primary btn-block" id="lookupBtn"><i data-lucide="search" style="width:16px;height:16px;"></i> Check status</button>
+
+    <div id="error" class="error-msg"></div>
+  </div>
 
   <div id="result">
     <div class="status-card">
-      <div style="font-family: var(--font-mono); font-size: 13px; color: var(--muted);" id="rAppId"></div>
-      <h3 id="rName" style="margin: 6px 0 4px;"></h3>
-      <div id="rStageLabel" class="pill pill-received" style="margin-bottom: 14px;"></div>
+      <div class="app-id-tag" id="rAppId"></div>
+      <h3 id="rName" style="margin: 10px 0 8px;"></h3>
+      <div id="rStageLabel" class="pill pill-received" style="margin-bottom: 16px;"></div>
       <div class="stage-track" id="track"></div>
     </div>
   </div>
 </div>
 
+<script src="https://unpkg.com/lucide@latest/dist/umd/lucide.js"></script>
 <script>
+if (window.lucide) lucide.createIcons();
+
 const STAGES = [
   { key: 'application_received', label: 'Application Received' },
   { key: 'under_review', label: 'Under Review' },
@@ -60,9 +132,13 @@ document.getElementById('lookupBtn').addEventListener('click', async () => {
   const email = document.getElementById('email').value.trim();
   const phone = document.getElementById('phone').value.trim();
   const err = document.getElementById('error');
-  err.textContent = '';
+  err.innerHTML = '';
 
-  if (!appId && !email && !phone) { err.textContent = 'Please enter an Application ID, email, or phone.'; return; }
+  if (!appId && !email && !phone) {
+    err.innerHTML = '<i data-lucide="alert-circle"></i> Please enter an Application ID, email, or phone.';
+    lucide.createIcons();
+    return;
+  }
 
   const params = new URLSearchParams();
   if (appId) params.set('application_id', appId);
@@ -70,7 +146,12 @@ document.getElementById('lookupBtn').addEventListener('click', async () => {
   if (phone) params.set('phone', phone);
 
   const res = await fetch('/api/apply/status?' + params.toString());
-  if (!res.ok) { err.textContent = 'We couldn\u2019t find an application matching that information.'; document.getElementById('result').style.display = 'none'; return; }
+  if (!res.ok) {
+    err.innerHTML = '<i data-lucide="alert-circle"></i> We couldn\u2019t find an application matching that information.';
+    lucide.createIcons();
+    document.getElementById('result').style.display = 'none';
+    return;
+  }
   const a = await res.json();
 
   document.getElementById('result').style.display = 'block';
@@ -81,7 +162,7 @@ document.getElementById('lookupBtn').addEventListener('click', async () => {
     application_received: ['Application Received', 'pill-received'],
     under_review: ['Under Review', 'pill-review'],
     interview: ['Interview Stage', 'pill-interview'],
-    recruited: ['Recruited 🎉', 'pill-recruited'],
+    recruited: ['Recruited', 'pill-recruited'],
     rejected: ['Not Selected', 'pill-rejected'],
     withdrawn: ['Withdrawn', 'pill-withdrawn'],
   };
@@ -97,15 +178,23 @@ document.getElementById('lookupBtn').addEventListener('click', async () => {
       cls = i === 0 ? 'done' : '';
     } else if (i < currentIdx) cls = 'done';
     else if (i === currentIdx) cls = 'current';
-    return `<div class="stage-item ${cls}"><div class="stage-dot">${cls === 'done' ? '✓' : i+1}</div><div>${s.label}</div></div>`;
+    const dotContent = cls === 'done' ? '<i data-lucide="check"></i>' : (i + 1);
+    return `<div class="stage-item ${cls}"><div class="stage-dot">${dotContent}</div><div class="stage-item-label">${s.label}</div></div>`;
   }).join('');
 
   if (a.interview_status === 'scheduled' && a.interview_date) {
-    document.getElementById('track').innerHTML += `<div class="status-card" style="margin-top:14px; padding:14px;">
-      <strong style="font-size:13.5px;">Interview scheduled</strong>
-      <div style="font-size:13.5px; color:var(--ink-soft); margin-top:4px;">${a.interview_date} at ${a.interview_time || ''} · ${a.interview_type || ''}</div>
+    document.getElementById('track').innerHTML += `<div class="status-card" style="margin-top:14px; padding:16px;">
+      <div class="interview-note">
+        <i data-lucide="calendar-clock"></i>
+        <div>
+          <strong style="font-size:13.5px;">Interview scheduled</strong>
+          <div style="font-size:13.5px; color:var(--ink-soft); margin-top:4px;">${a.interview_date} at ${a.interview_time || ''} · ${a.interview_type || ''}</div>
+        </div>
+      </div>
     </div>`;
   }
+
+  lucide.createIcons();
 });
 </script>
 </body>
