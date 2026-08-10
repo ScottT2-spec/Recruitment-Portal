@@ -19,17 +19,26 @@ function persist() {
 
 // ---------------- Job content ----------------
 async function loadJob() {
-  const res = await fetch('/api/job');
-  const job = await res.json();
+  let job;
+  try {
+    const res = await fetch('/api/job');
+    job = await res.json();
+    if (!res.ok || job.error || !job.job_title) throw new Error(job.error || 'Job data unavailable');
+  } catch (e) {
+    showJobLoadError();
+    return;
+  }
+
   document.getElementById('jobTitle').textContent = job.job_title;
   document.getElementById('jobSummary').textContent = job.job_summary;
-  document.getElementById('statSalary').textContent = `${job.currency}${fmt(job.min_salary)}+`;
-  document.getElementById('statType').textContent = job.employment_type;
-  document.getElementById('salaryRange').textContent = `${job.currency}${fmt(job.min_salary)} – ${job.currency}${fmt(job.max_salary)}`;
-  document.getElementById('commissionDesc').textContent = job.commission_description;
+  document.getElementById('statSalary').textContent = job.currency && job.min_salary ? `${job.currency}${fmt(job.min_salary)}+` : '—';
+  document.getElementById('statType').textContent = job.employment_type || '—';
+  document.getElementById('salaryRange').textContent = job.currency && job.min_salary && job.max_salary
+    ? `${job.currency}${fmt(job.min_salary)} – ${job.currency}${fmt(job.max_salary)}` : '—';
+  document.getElementById('commissionDesc').textContent = job.commission_description || '—';
 
-  document.getElementById('responsibilitiesList').innerHTML = job.responsibilities.map(listItem).join('');
-  document.getElementById('requirementsList').innerHTML = job.requirements.map(listItem).join('');
+  document.getElementById('responsibilitiesList').innerHTML = (job.responsibilities || []).map(listItem).join('');
+  document.getElementById('requirementsList').innerHTML = (job.requirements || []).map(listItem).join('');
 
   const terms = [
     ['Employment type', job.employment_type],
@@ -45,6 +54,16 @@ async function loadJob() {
 
   refreshIcons();
 }
+function showJobLoadError() {
+  const banner = `<div class="banner"><i data-lucide="alert-triangle"></i> We couldn't load the job details right now. Please refresh the page in a moment.</div>`;
+  document.getElementById('jobSummary').textContent = 'Job details are temporarily unavailable.';
+  ['statSalary'].forEach(id => document.getElementById(id).textContent = '—');
+  document.getElementById('statType').textContent = '—';
+  document.getElementById('salaryRange').textContent = '—';
+  document.getElementById('commissionDesc').textContent = '—';
+  document.getElementById('responsibilitiesList').innerHTML = banner;
+  refreshIcons();
+}
 function fmt(n) { return Number(n || 0).toLocaleString('en-NG'); }
 function listItem(text) {
   return `<li><span class="ico"><i data-lucide="check"></i></span>${text}</li>`;
@@ -52,6 +71,7 @@ function listItem(text) {
 function refreshIcons() {
   if (window.lucide) window.lucide.createIcons();
 }
+
 
 // ---------------- Drawer ----------------
 const drawer = document.getElementById('drawer');
