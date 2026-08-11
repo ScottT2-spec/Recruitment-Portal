@@ -166,6 +166,12 @@ async function renderDashboard() {
 // ============================================================
 let listFilters = {};
 
+// PRD §11 requires filters for Sales Experience, Telesales Experience, and Start
+// Availability. These mirror the exact option values captured on the application
+// form (public/js/careers.js) so filter values always match stored data.
+const SALES_EXP_OPTIONS = ['Yes', 'No'];
+const START_AVAILABILITY_OPTIONS = ['Immediately', 'Within 1 week', 'Within 2 weeks', 'More than 2 weeks'];
+
 async function renderApplicants() {
   const content = document.getElementById('content');
   content.innerHTML = `
@@ -182,9 +188,22 @@ async function renderApplicants() {
       </select>
       <select id="filterCountry"><option value="">All countries</option></select>
       <select id="filterState"><option value="">All states</option></select>
+      <select id="filterCity"><option value="">All cities</option></select>
       <select id="filterInterview">
         <option value="">Any interview status</option>
         ${Object.entries(INTERVIEW_META).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}
+      </select>
+      <select id="filterSalesExp">
+        <option value="">Any sales experience</option>
+        ${SALES_EXP_OPTIONS.map(v => `<option value="${v}">Sales experience: ${v}</option>`).join('')}
+      </select>
+      <select id="filterTelesalesExp">
+        <option value="">Any telesales experience</option>
+        ${SALES_EXP_OPTIONS.map(v => `<option value="${v}">Telesales experience: ${v}</option>`).join('')}
+      </select>
+      <select id="filterAvailability">
+        <option value="">Any start availability</option>
+        ${START_AVAILABILITY_OPTIONS.map(v => `<option value="${v}">${v}</option>`).join('')}
       </select>
       <select id="sortSelect">
         <option value="newest">Newest first</option>
@@ -194,19 +213,42 @@ async function renderApplicants() {
         <option value="stage">Stage</option>
       </select>
     </div>
+    <div class="toolbar" style="margin-top:-8px;">
+      <label class="date-filter-label">Applied <input type="date" id="filterAppliedFrom"> – <input type="date" id="filterAppliedTo"></label>
+      <label class="date-filter-label">Interview <input type="date" id="filterInterviewFrom"> – <input type="date" id="filterInterviewTo"></label>
+      <button class="btn btn-outline btn-sm" id="clearFiltersBtn" type="button">Clear filters</button>
+    </div>
     <div id="tableWrap"></div>
   `;
 
   document.getElementById('searchInput').addEventListener('input', debounce(loadApplicants, 300));
-  ['filterStatus','filterStage','filterCountry','filterState','filterInterview','sortSelect'].forEach(id => document.getElementById(id).addEventListener('change', loadApplicants));
+  [
+    'filterStatus', 'filterStage', 'filterCountry', 'filterState', 'filterCity',
+    'filterInterview', 'filterSalesExp', 'filterTelesalesExp', 'filterAvailability',
+    'filterAppliedFrom', 'filterAppliedTo', 'filterInterviewFrom', 'filterInterviewTo',
+    'sortSelect'
+  ].forEach(id => document.getElementById(id).addEventListener('change', loadApplicants));
 
-  // Populate country/state dropdowns from actual applicant data
+  document.getElementById('clearFiltersBtn').addEventListener('click', () => {
+    document.getElementById('searchInput').value = '';
+    ['filterStage','filterCountry','filterState','filterCity','filterInterview',
+      'filterSalesExp','filterTelesalesExp','filterAvailability',
+      'filterAppliedFrom','filterAppliedTo','filterInterviewFrom','filterInterviewTo']
+      .forEach(id => document.getElementById(id).value = '');
+    document.getElementById('filterStatus').value = 'completed';
+    document.getElementById('sortSelect').value = 'newest';
+    loadApplicants();
+  });
+
+  // Populate country/state/city dropdowns from actual applicant data
   try {
-    const { countries, states } = await api('/api/admin/applicants/meta/locations');
+    const { countries, states, cities } = await api('/api/admin/applicants/meta/locations');
     const countrySel = document.getElementById('filterCountry');
     const stateSel = document.getElementById('filterState');
+    const citySel = document.getElementById('filterCity');
     countries.forEach(c => countrySel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
     states.forEach(s => stateSel.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+    cities.forEach(c => citySel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
   } catch (e) { /* filters still work without options if this fails */ }
 
   loadApplicants();
@@ -215,12 +257,21 @@ async function renderApplicants() {
 function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTimeout(() => fn(...a), ms); }; }
 
 async function loadApplicants() {
-  const search = document.getElementById('searchInput')?.value || '';
+  const val = id => document.getElementById(id)?.value || '';
+  const search = val('searchInput');
   const status = document.getElementById('filterStatus')?.value ?? 'completed';
-  const stage = document.getElementById('filterStage')?.value || '';
-  const country = document.getElementById('filterCountry')?.value || '';
-  const state = document.getElementById('filterState')?.value || '';
-  const interview_attendance = document.getElementById('filterInterview')?.value || '';
+  const stage = val('filterStage');
+  const country = val('filterCountry');
+  const state = val('filterState');
+  const city = val('filterCity');
+  const interview_attendance = val('filterInterview');
+  const sales_experience = val('filterSalesExp');
+  const telesales_experience = val('filterTelesalesExp');
+  const start_availability = val('filterAvailability');
+  const applied_from = val('filterAppliedFrom');
+  const applied_to = val('filterAppliedTo');
+  const interview_date_from = val('filterInterviewFrom');
+  const interview_date_to = val('filterInterviewTo');
   const sort = document.getElementById('sortSelect')?.value || 'newest';
 
   const params = new URLSearchParams();
@@ -229,7 +280,15 @@ async function loadApplicants() {
   if (stage) params.set('stage', stage);
   if (country) params.set('country', country);
   if (state) params.set('state', state);
+  if (city) params.set('city', city);
   if (interview_attendance) params.set('interview_attendance', interview_attendance);
+  if (sales_experience) params.set('sales_experience', sales_experience);
+  if (telesales_experience) params.set('telesales_experience', telesales_experience);
+  if (start_availability) params.set('start_availability', start_availability);
+  if (applied_from) params.set('applied_from', applied_from);
+  if (applied_to) params.set('applied_to', applied_to);
+  if (interview_date_from) params.set('interview_date_from', interview_date_from);
+  if (interview_date_to) params.set('interview_date_to', interview_date_to);
   if (sort) params.set('sort', sort);
 
   const rows = await api('/api/admin/applicants?' + params.toString());
@@ -245,7 +304,7 @@ async function loadApplicants() {
       <table class="applicants">
         <thead><tr>
           <th>Applicant</th><th>Application ID</th><th>Phone</th><th>Location</th><th>Country</th>
-          <th>Applied</th><th>Stage</th><th>Interview</th>
+          <th>Applied</th><th>Stage</th><th>Interview</th><th>Interview Date</th><th>Recruiter</th><th>Last Updated</th>
         </tr></thead>
         <tbody>
           ${rows.map(r => `
@@ -258,6 +317,9 @@ async function loadApplicants() {
               <td>${fmtDate(r.created_at)}</td>
               <td>${r.application_status === 'started' ? '<span class="pill pill-received">Incomplete</span>' : pill(r.recruitment_stage)}</td>
               <td>${INTERVIEW_META[r.interview_status] || '—'}</td>
+              <td>${r.interview_date ? fmtDate(r.interview_date) : '—'}</td>
+              <td>${r.assigned_recruiter || '—'}</td>
+              <td>${fmtDateTime(r.updated_at)}</td>
             </tr>
           `).join('')}
         </tbody>
@@ -328,6 +390,13 @@ async function renderApplicantProfile(id) {
             <div class="kv-item"><div class="k">Start availability</div><div class="v">${a.start_availability || '—'}</div></div>
             <div class="kv-item"><div class="k">Preferred arrangement</div><div class="v">${a.preferred_work_arrangement || '—'}</div></div>
             <div class="kv-item"><div class="k">CV</div><div class="v">${a.cv_url ? `<a href="#" id="cvLink" style="color:var(--primary-dark); text-decoration:underline;">${a.cv_filename || 'Download'}</a>` : '—'}</div></div>
+            <div class="kv-item">
+              <div class="k">Assigned recruiter</div>
+              <div class="v" style="display:flex; gap:6px; align-items:center;">
+                <input id="assignedRecruiterInput" value="${a.assigned_recruiter || ''}" placeholder="Unassigned" style="flex:1; padding:6px 8px; border:1.5px solid var(--border); border-radius:6px; font-size:13.5px;">
+                <button class="btn btn-outline btn-sm" id="saveRecruiterBtn">Save</button>
+              </div>
+            </div>
           </div>
           <div style="margin-top:16px;">
             <div class="k" style="font-size:11.5px; color:var(--muted); font-family:var(--font-mono); text-transform:uppercase;">Why they want this role</div>
@@ -410,6 +479,11 @@ async function renderApplicantProfile(id) {
   });
 
   document.getElementById('scheduleBtn').addEventListener('click', () => openInterviewModal(a));
+  document.getElementById('saveRecruiterBtn').addEventListener('click', async () => {
+    const assigned_recruiter = document.getElementById('assignedRecruiterInput').value.trim();
+    await api(`/api/admin/applicants/${a.id}`, { method: 'PATCH', body: JSON.stringify({ assigned_recruiter }) });
+    toast('Assigned recruiter updated');
+  });
   document.getElementById('allowDupBtn')?.addEventListener('click', async () => {
     if (!confirm('Allow this candidate to submit a duplicate application?')) return;
     await api(`/api/admin/applicants/${id}/allow-duplicate`, { method: 'POST' });

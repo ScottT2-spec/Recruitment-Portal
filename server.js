@@ -359,7 +359,8 @@ app.get('/api/admin/stats', requireAuth, ah(async (req, res) => {
 
 app.get('/api/admin/applicants', requireAuth, ah(async (req, res) => {
   const { search, stage, status, country, state, city, interview_attendance,
-    sales_experience, telesales_experience, start_availability, sort } = req.query;
+    sales_experience, telesales_experience, start_availability, sort,
+    applied_from, applied_to, interview_date_from, interview_date_to } = req.query;
 
   let sql = `SELECT * FROM applicants WHERE 1=1`;
   const params = [];
@@ -381,6 +382,11 @@ app.get('/api/admin/applicants', requireAuth, ah(async (req, res) => {
   if (sales_experience) sql += ` AND sales_experience = ${nextParam(sales_experience)}`;
   if (telesales_experience) sql += ` AND telesales_experience = ${nextParam(telesales_experience)}`;
   if (start_availability) sql += ` AND start_availability = ${nextParam(start_availability)}`;
+  // PRD §11: filter by Application Date and Interview Date ranges.
+  if (applied_from) sql += ` AND created_at >= ${nextParam(applied_from)}::date`;
+  if (applied_to) sql += ` AND created_at < (${nextParam(applied_to)}::date + INTERVAL '1 day')`;
+  if (interview_date_from) sql += ` AND interview_date >= ${nextParam(interview_date_from)}`;
+  if (interview_date_to) sql += ` AND interview_date <= ${nextParam(interview_date_to)}`;
 
   const sortMap = {
     newest: 'created_at DESC',
@@ -395,7 +401,7 @@ app.get('/api/admin/applicants', requireAuth, ah(async (req, res) => {
   res.json(rows);
 }));
 
-// Distinct country/state values for admin filter dropdowns (completed applications only)
+// Distinct country/state/city values for admin filter dropdowns (completed applications only)
 app.get('/api/admin/applicants/meta/locations', requireAuth, ah(async (req, res) => {
   const countries = await db.query(
     `SELECT DISTINCT country FROM applicants WHERE application_status = 'completed' AND country IS NOT NULL AND country != '' ORDER BY country`
@@ -403,9 +409,13 @@ app.get('/api/admin/applicants/meta/locations', requireAuth, ah(async (req, res)
   const states = await db.query(
     `SELECT DISTINCT state FROM applicants WHERE application_status = 'completed' AND state IS NOT NULL AND state != '' ORDER BY state`
   );
+  const cities = await db.query(
+    `SELECT DISTINCT city FROM applicants WHERE application_status = 'completed' AND city IS NOT NULL AND city != '' ORDER BY city`
+  );
   res.json({
     countries: countries.map(r => r.country),
-    states: states.map(r => r.state)
+    states: states.map(r => r.state),
+    cities: cities.map(r => r.city)
   });
 }));
 
