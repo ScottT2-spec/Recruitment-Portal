@@ -9,7 +9,7 @@ A lightweight, mobile-first recruitment portal for hiring Telesales Representati
 - **Frontend:** Vanilla HTML/CSS/JS (no framework, no bundler)
 - **Auth:** Cookie sessions + bcrypt for the admin console
 - **File uploads:** CVs stored in Supabase Storage (public bucket, auto-created on first upload)
-- **Notifications:** Email + WhatsApp sends are **simulated** and logged to the Notification Log — swap in a real provider in `src/notify.js` when you're ready (see below)
+- **Notifications:** Email via **AWS SES**, WhatsApp via the **Meta WhatsApp Business Cloud API** — both wired up in `src/notify.js` (same providers/env-var naming as the AfroStore codebase). Every send is logged to the Notification Log as `sent`, `failed`, or `simulated` (when credentials aren't configured, e.g. local dev) — see below for setup
 
 ## Getting started
 
@@ -38,6 +38,15 @@ Project → Settings → Environment Variables, add:
 | `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
 | `SESSION_SECRET` | a long random string |
 | `SUPABASE_CV_BUCKET` | optional, defaults to `cvs` |
+| `AWS_ACCESS_KEY_ID` | IAM user/role key with `ses:SendEmail` permission |
+| `AWS_SECRET_ACCESS_KEY` | matching secret key |
+| `AWS_SES_REGION` | e.g. `us-east-1` — must be a region where SES is set up |
+| `SES_FROM_EMAIL` | a verified SES sender address (or verified domain) |
+| `SES_FROM_NAME` | display name, e.g. `Careers` |
+| `WHATSAPP_ACCESS_TOKEN` | Meta WhatsApp Business Cloud API token |
+| `WHATSAPP_PHONE_NUMBER_ID` | the Cloud API phone number ID |
+
+Any of the email/WhatsApp variables can be left unset — that channel just logs as `simulated` instead of failing.
 
 **3. Deploy**
 
@@ -64,22 +73,30 @@ The database and an admin user + default job posting + notification templates ar
 - 5-step mobile application form (Personal → Location → Experience → Assessment → Review) with progress saved as the candidate goes, duplicate-application detection, and optional CV upload (PDF/DOC/DOCX, 5MB limit).
 - Application confirmation screen with a shareable Application ID, plus a public status-lookup page.
 - Admin console: dashboard with funnel + state breakdown, searchable/filterable applicant table, full applicant profile (info, notes, stage history, notifications sent), one-click stage moves, interview scheduling + attendance tracking, editable notification templates.
-- Automatic (simulated) email + WhatsApp notifications for: application received, interview scheduled, interview reminder, recruited, rejected — with a full send log per applicant.
+- Automatic email + WhatsApp notifications for: application received, interview scheduled, interview reminder, recruited, rejected — sent via AWS SES and the Meta WhatsApp Cloud API, with a full send log (`sent` / `failed` / `simulated`) per applicant.
 - Basic audit trail: every stage change is timestamped and attributed to the admin who made it.
 
-## Wiring up real email & WhatsApp
+## Email & WhatsApp setup
 
-Everything currently funnels through `src/notify.js`, which fills in the templates and writes to `notification_log`. To go live:
+Everything funnels through `src/notify.js`, which fills in the templates, sends via the real providers when configured, and writes the outcome to `notification_log`.
 
-1. Add an email provider (Resend, SendGrid, or Amazon SES) and a WhatsApp Cloud API client, with credentials in `.env`.
-2. In `sendNotification()`, replace the two `logSend(...)` calls with real API calls, and store the returned `provider_message_id` / `status` from each provider instead of the simulated values.
+**Email — AWS SES:**
+1. In the SES console, verify your sending domain or the individual `SES_FROM_EMAIL` address.
+2. Create an IAM user (or role) with `ses:SendEmail` / `ses:SendRawEmail` permission; use its access key for `AWS_ACCESS_KEY_ID` / `AWS_SECRET_ACCESS_KEY`.
+3. New SES accounts start in the **sandbox** — you can only send to verified recipient addresses until you request production access (SES console → Account dashboard → "Request production access"). Do this before launch or candidate emails will fail.
 
-No other code needs to change — the rest of the app already calls `sendNotification()` at the right points (submission, stage change, interview scheduling, manual reminder).
+**WhatsApp — Meta Business Cloud API:**
+1. Create a Meta App with the WhatsApp product added, and a WhatsApp Business Account.
+2. Generate a long-lived system-user access token (`WHATSAPP_ACCESS_TOKEN`) and grab the Cloud API phone number ID (`WHATSAPP_PHONE_NUMBER_ID`) from the Meta App dashboard.
+3. Meta only allows free-form text messages (what this app sends) to a recipient who has messaged your business number within the last 24 hours, or via a pre-approved message Template outside that window. Free-form sends to cold candidates who haven't messaged in will be rejected by Meta — this is a WhatsApp platform rule, not something the app can bypass. For fully cold outbound, register and use approved message Templates instead (not implemented here).
+
+If either provider's env vars are absent, that channel is simply logged as `simulated` — nothing breaks, it just doesn't send.
 
 ## Before deploying to production
 
 - Change `SESSION_SECRET` to a long random string.
 - Change the seeded admin password (`Telesales2026!`) immediately after first login — there's currently no in-app "change password" flow, so update it directly via SQL against the `admins` table (Supabase's SQL editor works fine).
+- Request SES production access (see above) — otherwise emails to real candidates will silently fail while still in the sandbox.
 - Vercel gives you HTTPS by default.
 
 ## Project structure
@@ -87,7 +104,7 @@ No other code needs to change — the rest of the app already calls `sendNotific
 ```
 server.js              Express app + all API routes; exports the app for Vercel
 src/db.js               Postgres connection, schema, seed data (src/db.js's ready() runs once per warm instance)
-src/notify.js           Notification templating + (simulated) send + logging
+src/notify.js           Notification templating + AWS SES / WhatsApp Cloud API send + logging
 src/storage.js           Supabase Storage upload for CVs
 src/auth.js             Admin session middleware
 vercel.json             Routes all requests to server.js

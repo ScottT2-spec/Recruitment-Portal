@@ -1,10 +1,26 @@
 const db = require('./db');
+const { SESClient, SendEmailCommand } = require('@aws-sdk/client-ses');
 
 // --- Provider config (set these in production; falls back to simulation if absent) ---
-const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const RESEND_FROM = process.env.RESEND_FROM_EMAIL; // e.g. 'Careers <careers@yourcompany.com>'
+// Email: AWS SES — same provider/library/env-var naming as the AfroStore codebase
+// (src/lib/email.ts), for consistency across Prokip apps.
+const AWS_SES_REGION = process.env.AWS_SES_REGION || 'us-east-1';
+const AWS_ACCESS_KEY_ID = process.env.AWS_ACCESS_KEY_ID;
+const AWS_SECRET_ACCESS_KEY = process.env.AWS_SECRET_ACCESS_KEY;
+const SES_FROM_EMAIL = process.env.SES_FROM_EMAIL;
+const SES_FROM_NAME = process.env.SES_FROM_NAME || 'Careers';
 
-const WHATSAPP_TOKEN = process.env.WHATSAPP_CLOUD_API_TOKEN;
+const ses = new SESClient({
+  region: AWS_SES_REGION,
+  credentials: AWS_ACCESS_KEY_ID
+    ? { accessKeyId: AWS_ACCESS_KEY_ID, secretAccessKey: AWS_SECRET_ACCESS_KEY || '' }
+    : undefined,
+});
+
+// WhatsApp: Meta WhatsApp Business Cloud API — same integration as AfroStore
+// (src/lib/whatsapp.ts). Env var name matched to that implementation
+// (WHATSAPP_ACCESS_TOKEN, not WHATSAPP_CLOUD_API_TOKEN).
+const WHATSAPP_TOKEN = process.env.WHATSAPP_ACCESS_TOKEN;
 const WHATSAPP_PHONE_NUMBER_ID = process.env.WHATSAPP_PHONE_NUMBER_ID;
 
 function fillTemplate(body, vars) {
@@ -14,22 +30,16 @@ function fillTemplate(body, vars) {
 // --- Real send functions. Each returns { status, provider_message_id, error? }. ---
 
 async function sendEmailReal(to, subject, body) {
-  const res = await fetch('https://api.resend.com/emails', {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${RESEND_API_KEY}`,
-      'Content-Type': 'application/json'
+  const command = new SendEmailCommand({
+    Source: `${SES_FROM_NAME} <${SES_FROM_EMAIL}>`,
+    Destination: { ToAddresses: [to] },
+    Message: {
+      Subject: { Data: subject || 'Update on your application', Charset: 'UTF-8' },
+      Body: { Text: { Data: body, Charset: 'UTF-8' } },
     },
-    body: JSON.stringify({
-      from: RESEND_FROM,
-      to,
-      subject: subject || 'Update on your application',
-      text: body
-    })
   });
-  const data = await res.json().catch(() => ({}));
-  if (!res.ok) throw new Error(data.message || `Resend API error (${res.status})`);
-  return data.id;
+  const result = await ses.send(command);
+  return result.MessageId;
 }
 
 async function sendWhatsappReal(to, body) {
@@ -43,7 +53,7 @@ async function sendWhatsappReal(to, body) {
       messaging_product: 'whatsapp',
       to: to.replace(/[^\d+]/g, ''),
       type: 'text',
-      text: { body }
+      text: { body, preview_url: true }
     })
   });
   const data = await res.json().catch(() => ({}));
@@ -51,14 +61,14 @@ async function sendWhatsappReal(to, body) {
   return data.messages?.[0]?.id;
 }
 
-const emailConfigured = !!(RESEND_API_KEY && RESEND_FROM);
+const emailConfigured = !!(AWS_ACCESS_KEY_ID && AWS_SECRET_ACCESS_KEY && SES_FROM_EMAIL);
 const whatsappConfigured = !!(WHATSAPP_TOKEN && WHATSAPP_PHONE_NUMBER_ID);
 
 if (!emailConfigured) {
-  console.warn('[notify] RESEND_API_KEY / RESEND_FROM_EMAIL not set — emails will be logged as "simulated", not actually sent.');
+  console.warn('[notify] AWS_ACCESS_KEY_ID / AWS_SECRET_ACCESS_KEY / SES_FROM_EMAIL not set — emails will be logged as "simulated", not actually sent.');
 }
 if (!whatsappConfigured) {
-  console.warn('[notify] WHATSAPP_CLOUD_API_TOKEN / WHATSAPP_PHONE_NUMBER_ID not set — WhatsApp messages will be logged as "simulated", not actually sent.');
+  console.warn('[notify] WHATSAPP_ACCESS_TOKEN / WHATSAPP_PHONE_NUMBER_ID not set — WhatsApp messages will be logged as "simulated", not actually sent.');
 }
 
 /**
