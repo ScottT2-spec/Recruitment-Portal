@@ -111,6 +111,7 @@ async function renderDashboard() {
   const s = await api('/api/admin/stats');
 
   const maxState = Math.max(1, ...s.by_state.map(x => x.count));
+  const maxCountry = Math.max(1, ...s.by_country.map(x => x.count));
   const maxFunnel = Math.max(1, ...s.funnel.map(x => x.value));
 
   content.innerHTML = `
@@ -146,6 +147,17 @@ async function renderDashboard() {
         </div>
       `).join('') : `<div class="empty-state">No completed applications yet.</div>`}
     </div>
+
+    <div class="panel">
+      <div class="panel-head"><h3>Applications by country</h3></div>
+      ${s.by_country.length ? s.by_country.map(x => `
+        <div class="state-row">
+          <div class="state-name">${x.country}</div>
+          <div class="state-bar-wrap"><div class="state-bar" style="width:${Math.max(4, (x.count/maxCountry)*100)}%"></div></div>
+          <div class="state-count mono">${x.count}</div>
+        </div>
+      `).join('') : `<div class="empty-state">No completed applications yet.</div>`}
+    </div>
   `;
 }
 
@@ -163,6 +175,8 @@ async function renderApplicants() {
         <option value="">All stages</option>
         ${Object.entries(STAGE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
       </select>
+      <select id="filterCountry"><option value="">All countries</option></select>
+      <select id="filterState"><option value="">All states</option></select>
       <select id="filterInterview">
         <option value="">Any interview status</option>
         ${Object.entries(INTERVIEW_META).map(([k,v]) => `<option value="${k}">${v}</option>`).join('')}
@@ -179,7 +193,16 @@ async function renderApplicants() {
   `;
 
   document.getElementById('searchInput').addEventListener('input', debounce(loadApplicants, 300));
-  ['filterStage','filterInterview','sortSelect'].forEach(id => document.getElementById(id).addEventListener('change', loadApplicants));
+  ['filterStage','filterCountry','filterState','filterInterview','sortSelect'].forEach(id => document.getElementById(id).addEventListener('change', loadApplicants));
+
+  // Populate country/state dropdowns from actual applicant data
+  try {
+    const { countries, states } = await api('/api/admin/applicants/meta/locations');
+    const countrySel = document.getElementById('filterCountry');
+    const stateSel = document.getElementById('filterState');
+    countries.forEach(c => countrySel.insertAdjacentHTML('beforeend', `<option value="${c}">${c}</option>`));
+    states.forEach(s => stateSel.insertAdjacentHTML('beforeend', `<option value="${s}">${s}</option>`));
+  } catch (e) { /* filters still work without options if this fails */ }
 
   loadApplicants();
 }
@@ -189,12 +212,16 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 async function loadApplicants() {
   const search = document.getElementById('searchInput')?.value || '';
   const stage = document.getElementById('filterStage')?.value || '';
+  const country = document.getElementById('filterCountry')?.value || '';
+  const state = document.getElementById('filterState')?.value || '';
   const interview_attendance = document.getElementById('filterInterview')?.value || '';
   const sort = document.getElementById('sortSelect')?.value || 'newest';
 
   const params = new URLSearchParams({ status: 'completed' });
   if (search) params.set('search', search);
   if (stage) params.set('stage', stage);
+  if (country) params.set('country', country);
+  if (state) params.set('state', state);
   if (interview_attendance) params.set('interview_attendance', interview_attendance);
   if (sort) params.set('sort', sort);
 
@@ -210,7 +237,7 @@ async function loadApplicants() {
     <div class="table-wrap">
       <table class="applicants">
         <thead><tr>
-          <th>Applicant</th><th>Application ID</th><th>Phone</th><th>Location</th>
+          <th>Applicant</th><th>Application ID</th><th>Phone</th><th>Location</th><th>Country</th>
           <th>Applied</th><th>Stage</th><th>Interview</th>
         </tr></thead>
         <tbody>
@@ -220,6 +247,7 @@ async function loadApplicants() {
               <td class="app-id-cell">${r.application_id}</td>
               <td>${r.phone || '—'}</td>
               <td>${[r.city, r.state].filter(Boolean).join(', ') || '—'}</td>
+              <td>${r.country || '—'}</td>
               <td>${fmtDate(r.created_at)}</td>
               <td>${pill(r.recruitment_stage)}</td>
               <td>${INTERVIEW_META[r.interview_status] || '—'}</td>
@@ -552,6 +580,17 @@ async function renderJobSettings() {
       <div class="fg" style="margin-top:14px;"><label>Performance expectations</label><textarea id="jPerf">${j.performance_expectations || ''}</textarea></div>
     </div>
 
+    <div class="panel">
+      <div class="panel-head"><h3>Notifications</h3></div>
+      <div class="fg">
+        <label>WhatsApp integration</label>
+        <select id="jWhatsapp">
+          <option value="1" ${j.whatsapp_enabled ? 'selected' : ''}>Enabled — candidates get WhatsApp notifications</option>
+          <option value="0" ${!j.whatsapp_enabled ? 'selected' : ''}>Disabled — email notifications only</option>
+        </select>
+      </div>
+    </div>
+
     <button class="btn btn-primary" id="saveJob">Save changes</button>
   `;
 
@@ -596,6 +635,7 @@ async function renderJobSettings() {
       payment_schedule: document.getElementById('jPayment').value,
       application_open: document.getElementById('jOpen').value === '1',
       application_deadline: null,
+      whatsapp_enabled: document.getElementById('jWhatsapp').value === '1',
     };
     await api('/api/admin/job-settings', { method: 'PUT', body: JSON.stringify(body) });
     toast('Job settings saved');

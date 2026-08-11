@@ -54,6 +54,7 @@ CREATE TABLE IF NOT EXISTS job_settings (
   payment_schedule TEXT,
   application_open INTEGER DEFAULT 1,
   application_deadline TEXT,
+  whatsapp_enabled INTEGER DEFAULT 1,
   updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
@@ -148,6 +149,10 @@ let readyPromise = null;
 async function initDb() {
   await pool.query(SCHEMA_SQL);
 
+  // Migration for tables created before whatsapp_enabled existed (CREATE TABLE IF
+  // NOT EXISTS above won't add columns to an already-existing table).
+  await pool.query(`ALTER TABLE job_settings ADD COLUMN IF NOT EXISTS whatsapp_enabled INTEGER DEFAULT 1`);
+
   const { rows: [{ c: adminCount }] } = await pool.query('SELECT COUNT(*)::int c FROM admins');
   if (adminCount === 0) {
     const hash = bcrypt.hashSync('Telesales2026!', 10);
@@ -165,8 +170,8 @@ async function initDb() {
         min_salary, max_salary, currency, commission_description,
         employment_type, work_arrangement, working_days, working_hours,
         probation_period, performance_expectations, payment_schedule,
-        application_open, application_deadline
-      ) VALUES (1, $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17)`,
+        application_open, application_deadline, whatsapp_enabled
+      ) VALUES (1, $1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15,$16,$17,$18)`,
       [
         'Telesales Representative',
         'You will contact potential customers, introduce our products and services, explain their benefits, follow up with prospects, and convert qualified leads into paying customers.',
@@ -196,7 +201,7 @@ async function initDb() {
         'Full-time', 'Hybrid', 'Monday \u2013 Friday', '9:00 AM \u2013 5:00 PM',
         '3 months', 'Daily call targets, weekly conversions, monthly revenue quota',
         'Monthly, on the last working day',
-        1, null
+        1, null, 1
       ]
     );
   }

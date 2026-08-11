@@ -356,6 +356,14 @@ async function submitApplication() {
   try {
     const res = await fetch('/api/apply/submit', { method: 'POST', body: fd });
     const json = await res.json();
+    if (!res.ok) {
+      btn.disabled = false; btn.textContent = 'Submit application';
+      const msg = json.details && json.details.length
+        ? 'Please check the following: ' + json.details.join(', ')
+        : (json.error || 'Something went wrong submitting your application. Please try again.');
+      alert(msg);
+      return;
+    }
     state.application_id = json.application_id;
     state.submitted = true;
     localStorage.removeItem('app_data');

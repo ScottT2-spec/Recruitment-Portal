@@ -15,7 +15,8 @@ async function sendNotification(applicant, templateKey, extraVars = {}) {
   const tpl = await db.get('SELECT * FROM notification_templates WHERE key = $1', [templateKey]);
   if (!tpl) return;
 
-  const job = await db.get('SELECT job_title FROM job_settings WHERE id = 1');
+  const job = await db.get('SELECT job_title, whatsapp_enabled FROM job_settings WHERE id = 1');
+  const whatsappEnabled = job ? !!job.whatsapp_enabled : true;
   const vars = {
     first_name: applicant.first_name,
     last_name: applicant.last_name,
@@ -39,7 +40,7 @@ async function sendNotification(applicant, templateKey, extraVars = {}) {
   );
 
   if (applicant.email) await logSend('email', applicant.email);
-  if (applicant.whatsapp_number) await logSend('whatsapp', applicant.whatsapp_number);
+  if (applicant.whatsapp_number && whatsappEnabled) await logSend('whatsapp', applicant.whatsapp_number);
 
   return { subject, message };
 }

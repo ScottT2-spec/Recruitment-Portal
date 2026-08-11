@@ -5,6 +5,7 @@ const bcrypt = require('bcryptjs');
 const multer = require('multer');
 const path = require('path');
 const { customAlphabet } = require('nanoid');
+const rateLimit = require('express-rate-limit');
 
 const db = require('./src/db');
 const { requireAuth } = require('./src/auth');
@@ -22,6 +23,33 @@ const APPLICANT_FIELDS = [
   'reason_for_applying','comfortable_with_calls','has_smartphone','has_internet',
   'start_availability','preferred_work_arrangement'
 ];
+
+// Fields required for a *final* submission (excludes explicitly optional/configurable
+// PRD fields: gender, date_of_birth, previous_company, previous_role, experience_duration).
+const REQUIRED_SUBMIT_FIELDS = [
+  'first_name','last_name','email','phone','whatsapp_number',
+  'country','state','city','education_level','employment_status',
+  'sales_experience','telesales_experience',
+  'reason_for_applying','comfortable_with_calls','has_smartphone','has_internet',
+  'start_availability','preferred_work_arrangement'
+];
+
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const PHONE_RE = /^[0-9+()\-\s]{7,20}$/;
+
+// Server-side validation for a final application submission. Returns an array of
+// human-readable error strings (empty = valid). Client-side validation exists too,
+// but PRD §28 explicitly requires all form input to be validated server-side as well.
+function validateSubmission(b) {
+  const errors = [];
+  for (const f of REQUIRED_SUBMIT_FIELDS) {
+    if (!b[f] || !String(b[f]).trim()) errors.push(`${f.replace(/_/g, ' ')} is required`);
+  }
+  if (b.email && !EMAIL_RE.test(String(b.email).trim())) errors.push('email address is invalid');
+  if (b.phone && !PHONE_RE.test(String(b.phone).trim())) errors.push('phone number is invalid');
+  if (b.whatsapp_number && !PHONE_RE.test(String(b.whatsapp_number).trim())) errors.push('WhatsApp number is invalid');
+  return errors;
+}
 
 // ---------- Middleware ----------
 app.use(express.json());
@@ -60,6 +88,24 @@ const upload = multer({
 // Small helper: wraps an async route handler so rejected promises hit Express error handling.
 const ah = fn => (req, res, next) => fn(req, res, next).catch(next);
 
+// ---------- Rate limiting (PRD §28: protect against duplicate/spam submissions,
+// and brute-force protection on admin login) ----------
+const applyLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30, // autosave fires on every step, so this needs headroom above a login-style limit
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many requests. Please wait a few minutes and try again.' }
+});
+
+const loginLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many login attempts. Please wait a few minutes and try again.' }
+});
+
 // ============================================================
 // PUBLIC API
 // ============================================================
@@ -73,7 +119,7 @@ app.get('/api/job', ah(async (req, res) => {
 }));
 
 // Start / autosave an application (upsert by email+phone, keyed on application_id if provided)
-app.post('/api/apply/start', ah(async (req, res) => {
+app.post('/api/apply/start', applyLimiter, ah(async (req, res) => {
   const b = req.body;
   let applicant;
 
@@ -108,7 +154,7 @@ app.post('/api/apply/start', ah(async (req, res) => {
 }));
 
 // Duplicate check
-app.get('/api/apply/check-duplicate', ah(async (req, res) => {
+app.get('/api/apply/check-duplicate', applyLimiter, ah(async (req, res) => {
   const { email, phone } = req.query;
   const existing = await db.get(
     `SELECT application_id, application_status FROM applicants
@@ -120,12 +166,18 @@ app.get('/api/apply/check-duplicate', ah(async (req, res) => {
 }));
 
 // Submit final application (with optional CV upload)
-app.post('/api/apply/submit', upload.single('cv'), ah(async (req, res) => {
+app.post('/api/apply/submit', applyLimiter, upload.single('cv'), ah(async (req, res) => {
   const b = req.body;
   if (!b.application_id) return res.status(400).json({ error: 'Missing application_id' });
 
   const applicant = await db.get('SELECT * FROM applicants WHERE application_id = $1', [b.application_id]);
   if (!applicant) return res.status(404).json({ error: 'Application not found' });
+
+  // Validate against the merged view of previously-saved + newly-submitted fields,
+  // since earlier steps may already be persisted from autosave.
+  const merged = { ...applicant, ...b };
+  const errors = validateSubmission(merged);
+  if (errors.length) return res.status(400).json({ error: 'Please complete all required fields', details: errors });
 
   const sets = APPLICANT_FIELDS.map((f, i) => `${f} = COALESCE($${i + 1}, ${f})`);
   const values = APPLICANT_FIELDS.map(f => b[f] ?? null);
@@ -183,7 +235,7 @@ function sanitizeForCandidate(row) {
 // ADMIN AUTH
 // ============================================================
 
-app.post('/api/admin/login', ah(async (req, res) => {
+app.post('/api/admin/login', loginLimiter, ah(async (req, res) => {
   const { email, password } = req.body;
   const admin = await db.get('SELECT * FROM admins WHERE email = $1', [(email || '').toLowerCase()]);
   if (!admin || !bcrypt.compareSync(password || '', admin.password_hash)) {
@@ -293,6 +345,20 @@ app.get('/api/admin/applicants', requireAuth, ah(async (req, res) => {
 
   const rows = await db.query(sql, params);
   res.json(rows);
+}));
+
+// Distinct country/state values for admin filter dropdowns (completed applications only)
+app.get('/api/admin/applicants/meta/locations', requireAuth, ah(async (req, res) => {
+  const countries = await db.query(
+    `SELECT DISTINCT country FROM applicants WHERE application_status = 'completed' AND country IS NOT NULL AND country != '' ORDER BY country`
+  );
+  const states = await db.query(
+    `SELECT DISTINCT state FROM applicants WHERE application_status = 'completed' AND state IS NOT NULL AND state != '' ORDER BY state`
+  );
+  res.json({
+    countries: countries.map(r => r.country),
+    states: states.map(r => r.state)
+  });
 }));
 
 app.get('/api/admin/applicants/:id', requireAuth, ah(async (req, res) => {
@@ -421,7 +487,7 @@ app.put('/api/admin/job-settings', requireAuth, ah(async (req, res) => {
       work_arrangement=$10, working_days=$11, working_hours=$12,
       probation_period=$13, performance_expectations=$14,
       payment_schedule=$15, application_open=$16,
-      application_deadline=$17, updated_at=NOW()
+      application_deadline=$17, whatsapp_enabled=$18, updated_at=NOW()
       WHERE id = 1`,
     [
       b.job_title, b.job_summary,
@@ -431,7 +497,7 @@ app.put('/api/admin/job-settings', requireAuth, ah(async (req, res) => {
       b.work_arrangement, b.working_days, b.working_hours,
       b.probation_period, b.performance_expectations,
       b.payment_schedule, b.application_open ? 1 : 0,
-      b.application_deadline
+      b.application_deadline, b.whatsapp_enabled ? 1 : 0
     ]
   );
   res.json({ ok: true });
