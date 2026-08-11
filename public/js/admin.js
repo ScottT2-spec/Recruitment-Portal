@@ -118,7 +118,7 @@ async function renderDashboard() {
     <div class="stat-grid">
       <div class="stat-card accent"><div class="lbl">Completed Applications</div><div class="val">${s.completed}</div><div class="sub">${s.completion_rate}% completion rate</div></div>
       <div class="stat-card"><div class="lbl">Under Review</div><div class="val">${s.under_review}</div></div>
-      <div class="stat-card"><div class="lbl">Interviews Scheduled</div><div class="val">${s.interviews_scheduled}</div></div>
+      <div class="stat-card"><div class="lbl">Invited for Interview</div><div class="val">${s.interviews_scheduled}</div></div>
       <div class="stat-card"><div class="lbl">Recruited</div><div class="val">${s.recruited}</div></div>
       <div class="stat-card"><div class="lbl">Total Started</div><div class="val">${s.total_started}</div><div class="sub">${s.incomplete} incomplete</div></div>
       <div class="stat-card"><div class="lbl">Interview Attendance</div><div class="val">${s.interview_attended}</div><div class="sub">${s.interview_no_show} no-shows</div></div>
@@ -309,7 +309,7 @@ async function renderApplicantProfile(id) {
             <div class="kv-item"><div class="k">Previous role</div><div class="v">${[a.previous_role, a.previous_company].filter(Boolean).join(' at ') || '—'}</div></div>
             <div class="kv-item"><div class="k">Start availability</div><div class="v">${a.start_availability || '—'}</div></div>
             <div class="kv-item"><div class="k">Preferred arrangement</div><div class="v">${a.preferred_work_arrangement || '—'}</div></div>
-            <div class="kv-item"><div class="k">CV</div><div class="v">${a.cv_url ? `<a href="${a.cv_url}" target="_blank" style="color:var(--primary-dark); text-decoration:underline;">${a.cv_filename || 'Download'}</a>` : '—'}</div></div>
+            <div class="kv-item"><div class="k">CV</div><div class="v">${a.cv_url ? `<a href="#" id="cvLink" style="color:var(--primary-dark); text-decoration:underline;">${a.cv_filename || 'Download'}</a>` : '—'}</div></div>
           </div>
           <div style="margin-top:16px;">
             <div class="k" style="font-size:11.5px; color:var(--muted); font-family:var(--font-mono); text-transform:uppercase;">Why they want this role</div>
@@ -392,6 +392,15 @@ async function renderApplicantProfile(id) {
   });
 
   document.getElementById('scheduleBtn').addEventListener('click', () => openInterviewModal(a));
+  document.getElementById('cvLink')?.addEventListener('click', async (e) => {
+    e.preventDefault();
+    try {
+      const { url } = await api(`/api/admin/applicants/${id}/cv`);
+      window.open(url, '_blank');
+    } catch (err) {
+      alert(err.message || 'Could not open CV');
+    }
+  });
   document.getElementById('markAttended')?.addEventListener('click', async () => {
     await api(`/api/admin/applicants/${a.id}/attendance`, { method: 'POST', body: JSON.stringify({ status: 'attended' }) });
     toast('Marked as attended'); renderApplicantProfile(id);

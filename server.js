@@ -10,7 +10,7 @@ const rateLimit = require('express-rate-limit');
 const db = require('./src/db');
 const { requireAuth } = require('./src/auth');
 const { sendNotification } = require('./src/notify');
-const { uploadCv } = require('./src/storage');
+const { uploadCv, getCvSignedUrl } = require('./src/storage');
 
 const nanoid = customAlphabet('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 6);
 const app = express();
@@ -272,7 +272,10 @@ app.get('/api/admin/stats', requireAuth, ah(async (req, res) => {
     incomplete: await c(`SELECT COUNT(*)::int c FROM applicants WHERE application_status = 'started'`),
     completed: await c(`SELECT COUNT(*)::int c FROM applicants WHERE application_status = 'completed'`),
     under_review: await c(`SELECT COUNT(*)::int c FROM applicants WHERE recruitment_stage = 'under_review'`),
-    interviews_scheduled: await c(`SELECT COUNT(*)::int c FROM applicants WHERE interview_status = 'scheduled'`),
+    // Cumulative: everyone ever invited, regardless of what their interview_status
+    // has moved on to since (scheduled -> attended/did_not_attend). A snapshot filter
+    // on 'scheduled' alone undercounts this once outcomes are recorded.
+    interviews_scheduled: await c(`SELECT COUNT(*)::int c FROM applicants WHERE interview_status != 'not_scheduled'`),
     interview_attended: await c(`SELECT COUNT(*)::int c FROM applicants WHERE interview_status = 'attended'`),
     interview_no_show: await c(`SELECT COUNT(*)::int c FROM applicants WHERE interview_status = 'did_not_attend'`),
     recruited: await c(`SELECT COUNT(*)::int c FROM applicants WHERE recruitment_stage = 'recruited'`),
@@ -361,6 +364,15 @@ app.get('/api/admin/applicants/meta/locations', requireAuth, ah(async (req, res)
     countries: countries.map(r => r.country),
     states: states.map(r => r.state)
   });
+}));
+
+// Signed, short-lived URL to view/download an applicant's CV. Generated fresh
+// per request — the stored cv_url is a private storage key, not a public link.
+app.get('/api/admin/applicants/:id/cv', requireAuth, ah(async (req, res) => {
+  const row = await db.get('SELECT cv_url, cv_filename FROM applicants WHERE id = $1', [req.params.id]);
+  if (!row || !row.cv_url) return res.status(404).json({ error: 'No CV on file' });
+  const url = await getCvSignedUrl(row.cv_url);
+  res.json({ url, filename: row.cv_filename });
 }));
 
 app.get('/api/admin/applicants/:id', requireAuth, ah(async (req, res) => {

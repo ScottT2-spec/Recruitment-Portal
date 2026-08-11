@@ -23,7 +23,9 @@ async function ensureBucket() {
   if (error) throw error;
   const exists = (buckets || []).some(b => b.name === BUCKET);
   if (!exists) {
-    const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: true });
+    // CVs contain applicant PII — bucket must stay private. Access is via
+    // short-lived signed URLs (see getCvSignedUrl), never a public URL.
+    const { error: createError } = await supabase.storage.createBucket(BUCKET, { public: false });
     // Ignore "already exists" race between concurrent cold starts.
     if (createError && !/already exists/i.test(createError.message || '')) throw createError;
   }
@@ -36,7 +38,9 @@ function bucketReady() {
 
 /**
  * Uploads a CV file buffer (from multer memoryStorage) to Supabase Storage
- * and returns its public URL.
+ * and returns the storage key (NOT a public URL — the bucket is private).
+ * Store this key in cv_url; resolve it to a signed URL on demand via
+ * getCvSignedUrl, only from an authenticated admin route.
  */
 async function uploadCv(file) {
   if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) {
@@ -55,8 +59,19 @@ async function uploadCv(file) {
     });
   if (error) throw error;
 
-  const { data } = supabase.storage.from(BUCKET).getPublicUrl(key);
-  return data.publicUrl;
+  return key;
 }
 
-module.exports = { uploadCv };
+/**
+ * Produces a time-limited signed URL for an admin to view/download a CV.
+ * expiresIn is in seconds (default 5 minutes) — generate fresh on each request,
+ * never persist or cache the signed URL itself.
+ */
+async function getCvSignedUrl(key, expiresIn = 300) {
+  if (!key) return null;
+  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(key, expiresIn);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+module.exports = { uploadCv, getCvSignedUrl };
