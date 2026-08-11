@@ -236,12 +236,14 @@ function sanitizeForCandidate(row) {
 // ============================================================
 
 app.post('/api/admin/login', loginLimiter, ah(async (req, res) => {
-  const { email, password } = req.body;
+  const { email, password, remember } = req.body;
   const admin = await db.get('SELECT * FROM admins WHERE email = $1', [(email || '').toLowerCase()]);
   if (!admin || !bcrypt.compareSync(password || '', admin.password_hash)) {
     return res.status(401).json({ error: 'Invalid email or password' });
   }
   req.session.adminId = admin.id;
+  // "Remember me" extends the session cookie from the default 12h to 30 days.
+  if (remember) req.sessionOptions.maxAge = 30 * 24 * 60 * 60 * 1000;
   res.json({ id: admin.id, name: admin.name, email: admin.email, role: admin.role });
 }));
 

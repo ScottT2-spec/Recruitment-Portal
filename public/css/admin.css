@@ -1,12 +1,62 @@
 body.admin-body { background: var(--surface); min-height: 100vh; }
 
 /* ---------- Login ---------- */
-.login-wrap { min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 20px; }
-.login-card { width: 100%; max-width: 380px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 34px 30px; box-shadow: var(--shadow); }
-.login-mark { width: 44px; height: 44px; border-radius: 12px; background: var(--ink); color: var(--primary); display: flex; align-items: center; justify-content: center; margin-bottom: 18px; }
-.login-card h1 { font-size: 22px; margin-bottom: 6px; }
-.login-card p.lede { color: var(--muted); font-size: 14px; margin-bottom: 24px; }
-.login-hint { margin-top: 16px; font-size: 12.5px; color: var(--muted); background: var(--surface); padding: 10px 12px; border-radius: 8px; font-family: var(--font-mono); }
+.login-wrap { min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 32px 20px; }
+.login-card { width: 100%; max-width: 400px; background: #fff; border: 1px solid var(--border); border-radius: var(--radius-lg); padding: 40px 32px; box-shadow: var(--shadow); text-align: center; }
+
+.login-logo { display: flex; align-items: center; justify-content: center; gap: 8px; margin-bottom: 28px; }
+.login-logo-mark { width: 30px; height: 30px; border-radius: 9px; background: var(--ink); color: var(--primary); display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+.login-logo-word { font-family: var(--font-display); font-weight: 800; font-size: 17px; color: var(--ink); }
+
+.login-card h1 { font-size: 25px; font-weight: 800; margin: 0 0 6px; letter-spacing: -0.01em; }
+.login-card p.lede { color: var(--muted); font-size: 14.5px; margin: 0 0 28px; }
+
+.login-card form { text-align: left; }
+
+.field-icon { margin-bottom: 18px; }
+.field-icon label {
+  display: block; font-size: 11.5px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em;
+  color: var(--ink-soft); margin-bottom: 8px;
+}
+.field-icon-input {
+  display: flex; align-items: center; gap: 10px; background: var(--surface); border: 1.5px solid var(--surface);
+  border-radius: 12px; padding: 0 14px; transition: border-color .15s ease, background .15s ease;
+}
+.field-icon-input:focus-within { border-color: var(--primary); background: #fff; }
+.field-icon-input svg { color: var(--muted); flex-shrink: 0; }
+.field-icon-input input {
+  flex: 1; border: none; background: transparent; padding: 13px 0; font-size: 15px; color: var(--ink);
+  min-width: 0; font-family: var(--font-body);
+}
+.field-icon-input input:focus { outline: none; }
+.field-icon-input input::placeholder { color: #9aa1b0; }
+
+.pw-toggle {
+  border: none; background: none; padding: 6px; margin: 0 -6px 0 0; color: var(--muted); cursor: pointer;
+  display: flex; align-items: center; flex-shrink: 0; border-radius: 6px;
+}
+.pw-toggle:hover { color: var(--ink-soft); }
+.pw-toggle.is-visible { color: var(--primary); }
+
+.login-options { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
+.remember-me { display: flex; align-items: center; gap: 8px; font-size: 13.5px; color: var(--ink-soft); cursor: pointer; user-select: none; }
+.remember-me input[type=checkbox] { width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer; }
+.login-options a { font-size: 13.5px; color: var(--primary); font-weight: 600; text-decoration: none; }
+.login-options a:hover { text-decoration: underline; }
+
+/* Reference design uses a dark navy button here rather than the site's gold accent CTA
+   (gold stays reserved for candidate-facing "Apply" actions). */
+.login-submit {
+  padding: 14px; font-size: 15.5px; border-radius: 12px;
+  background: var(--primary-dark); color: #fff; box-shadow: none;
+}
+.login-submit:hover { background: var(--navy-900); filter: none; box-shadow: 0 10px 24px rgba(15,28,50,0.35); }
+
+.login-error { color: var(--danger); font-size: 13px; background: var(--danger-tint); padding: 9px 12px; border-radius: 8px; margin-bottom: 16px; }
+
+.login-hint { margin-top: 22px; font-size: 12px; color: var(--muted); background: var(--surface); padding: 10px 12px; border-radius: 8px; font-family: var(--font-mono); }
+
+.login-footnote { margin-top: 22px; font-size: 13.5px; color: var(--muted); text-align: center; }
 
 /* ---------- Shell ---------- */
 .admin-shell { display: grid; grid-template-columns: 232px 1fr; min-height: 100vh; }
