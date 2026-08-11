@@ -171,6 +171,11 @@ async function renderApplicants() {
   content.innerHTML = `
     <div class="toolbar">
       <input type="search" id="searchInput" placeholder="Search name, email, phone, or application ID…">
+      <select id="filterStatus">
+        <option value="completed">Completed applications</option>
+        <option value="started">Incomplete (started only)</option>
+        <option value="">All applications</option>
+      </select>
       <select id="filterStage">
         <option value="">All stages</option>
         ${Object.entries(STAGE_META).map(([k,v]) => `<option value="${k}">${v.label}</option>`).join('')}
@@ -193,7 +198,7 @@ async function renderApplicants() {
   `;
 
   document.getElementById('searchInput').addEventListener('input', debounce(loadApplicants, 300));
-  ['filterStage','filterCountry','filterState','filterInterview','sortSelect'].forEach(id => document.getElementById(id).addEventListener('change', loadApplicants));
+  ['filterStatus','filterStage','filterCountry','filterState','filterInterview','sortSelect'].forEach(id => document.getElementById(id).addEventListener('change', loadApplicants));
 
   // Populate country/state dropdowns from actual applicant data
   try {
@@ -211,13 +216,15 @@ function debounce(fn, ms) { let t; return (...a) => { clearTimeout(t); t = setTi
 
 async function loadApplicants() {
   const search = document.getElementById('searchInput')?.value || '';
+  const status = document.getElementById('filterStatus')?.value ?? 'completed';
   const stage = document.getElementById('filterStage')?.value || '';
   const country = document.getElementById('filterCountry')?.value || '';
   const state = document.getElementById('filterState')?.value || '';
   const interview_attendance = document.getElementById('filterInterview')?.value || '';
   const sort = document.getElementById('sortSelect')?.value || 'newest';
 
-  const params = new URLSearchParams({ status: 'completed' });
+  const params = new URLSearchParams();
+  if (status) params.set('status', status);
   if (search) params.set('search', search);
   if (stage) params.set('stage', stage);
   if (country) params.set('country', country);
@@ -249,7 +256,7 @@ async function loadApplicants() {
               <td>${[r.city, r.state].filter(Boolean).join(', ') || '—'}</td>
               <td>${r.country || '—'}</td>
               <td>${fmtDate(r.created_at)}</td>
-              <td>${pill(r.recruitment_stage)}</td>
+              <td>${r.application_status === 'started' ? '<span class="pill pill-received">Incomplete</span>' : pill(r.recruitment_stage)}</td>
               <td>${INTERVIEW_META[r.interview_status] || '—'}</td>
             </tr>
           `).join('')}
@@ -288,6 +295,17 @@ async function renderApplicantProfile(id) {
             </div>
             ${pill(a.recruitment_stage)}
           </div>
+
+          ${a.application_status === 'started' ? `
+            <div class="banner" style="margin-top:12px;">
+              <i data-lucide="alert-triangle"></i>
+              This application isn't submitted yet.
+              ${a.duplicate_override
+                ? 'Duplicate submission has been allowed for this record.'
+                : `If this candidate's submission was blocked as a duplicate, you can allow it to go through.
+                   <button class="btn btn-outline btn-sm" id="allowDupBtn" style="margin-left:8px;">Allow duplicate submission</button>`}
+            </div>
+          ` : ''}
 
           <div class="stage-pipeline">
             ${stageOrder.map(s => `<button class="stage-btn ${a.recruitment_stage===s?'current':''}" data-stage="${s}">${STAGE_META[s].label}</button>`).join('')}
@@ -392,6 +410,11 @@ async function renderApplicantProfile(id) {
   });
 
   document.getElementById('scheduleBtn').addEventListener('click', () => openInterviewModal(a));
+  document.getElementById('allowDupBtn')?.addEventListener('click', async () => {
+    if (!confirm('Allow this candidate to submit a duplicate application?')) return;
+    await api(`/api/admin/applicants/${id}/allow-duplicate`, { method: 'POST' });
+    renderApplicantProfile(id);
+  });
   document.getElementById('cvLink')?.addEventListener('click', async (e) => {
     e.preventDefault();
     try {

@@ -115,6 +115,7 @@ CREATE TABLE IF NOT EXISTS applicants (
   rejection_reason TEXT,
   internal_notes TEXT,
   assigned_recruiter TEXT,
+  duplicate_override INTEGER DEFAULT 0,
 
   created_at TIMESTAMPTZ DEFAULT NOW(),
   submitted_at TIMESTAMPTZ,
@@ -149,9 +150,10 @@ let readyPromise = null;
 async function initDb() {
   await pool.query(SCHEMA_SQL);
 
-  // Migration for tables created before whatsapp_enabled existed (CREATE TABLE IF
-  // NOT EXISTS above won't add columns to an already-existing table).
+  // Migration for tables created before whatsapp_enabled / duplicate_override existed
+  // (CREATE TABLE IF NOT EXISTS above won't add columns to an already-existing table).
   await pool.query(`ALTER TABLE job_settings ADD COLUMN IF NOT EXISTS whatsapp_enabled INTEGER DEFAULT 1`);
+  await pool.query(`ALTER TABLE applicants ADD COLUMN IF NOT EXISTS duplicate_override INTEGER DEFAULT 0`);
 
   const { rows: [{ c: adminCount }] } = await pool.query('SELECT COUNT(*)::int c FROM admins');
   if (adminCount === 0) {

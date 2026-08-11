@@ -16,6 +16,20 @@ const nanoid = customAlphabet('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 6);
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Rate limiting and secure cookies both depend on Express seeing the real
+// client IP / protocol. If you deploy behind a reverse proxy or load balancer
+// (nginx, an ALB, Cloudflare, etc.) that terminates TLS and forwards
+// X-Forwarded-For, set TRUST_PROXY so req.ip and req.secure are accurate:
+//   TRUST_PROXY=1        -> trust exactly one hop (most single-LB setups)
+//   TRUST_PROXY=loopback -> trust only localhost (app behind local nginx)
+// Leave TRUST_PROXY unset if the app is directly internet-facing with no
+// proxy in front of it — trusting proxy headers you don't actually have
+// lets a client spoof X-Forwarded-For and bypass rate limiting entirely.
+if (process.env.TRUST_PROXY) {
+  const tp = process.env.TRUST_PROXY;
+  app.set('trust proxy', tp === 'true' ? true : (isNaN(Number(tp)) ? tp : Number(tp)));
+}
+
 const APPLICANT_FIELDS = [
   'first_name','last_name','email','phone','whatsapp_number','gender','date_of_birth',
   'country','state','city','education_level','employment_status','sales_experience',
@@ -56,7 +70,10 @@ app.use(express.json());
 app.use(cookieSession({
   name: 'session',
   keys: [process.env.SESSION_SECRET || 'dev-secret-change-me'],
-  maxAge: 12 * 60 * 60 * 1000
+  maxAge: 12 * 60 * 60 * 1000,
+  sameSite: 'lax',
+  // Secure by default; set COOKIE_INSECURE=true only for local http:// dev.
+  secure: process.env.COOKIE_INSECURE !== 'true'
 }));
 
 // Serve the frontend (public/) first — the site should load even if the
@@ -179,6 +196,25 @@ app.post('/api/apply/submit', applyLimiter, upload.single('cv'), ah(async (req, 
   const errors = validateSubmission(merged);
   if (errors.length) return res.status(400).json({ error: 'Please complete all required fields', details: errors });
 
+  // PRD §29: block a second completed application for the same email/phone by
+  // default. Only an admin can lift this, per-application, via the
+  // "allow duplicate" action in the admin panel (sets duplicate_override).
+  if (!applicant.duplicate_override) {
+    const dup = await db.get(
+      `SELECT application_id FROM applicants
+       WHERE application_status = 'completed' AND id != $1
+         AND ((email = $2 AND email != '') OR (phone = $3 AND phone != ''))
+       ORDER BY id DESC LIMIT 1`,
+      [applicant.id, merged.email || '', merged.phone || '']
+    );
+    if (dup) {
+      return res.status(409).json({
+        error: `An application already exists for this email or phone (${dup.application_id}). ` +
+          `If you believe this is a mistake, please contact recruitment support — an admin can allow a new submission.`
+      });
+    }
+  }
+
   const sets = APPLICANT_FIELDS.map((f, i) => `${f} = COALESCE($${i + 1}, ${f})`);
   const values = APPLICANT_FIELDS.map(f => b[f] ?? null);
 
@@ -210,17 +246,24 @@ app.post('/api/apply/submit', applyLimiter, upload.single('cv'), ah(async (req, 
   res.json({ application_id: updated.application_id });
 }));
 
-// Candidate: look up their own application status
-app.get('/api/apply/status', ah(async (req, res) => {
+// Candidate: look up their own application status.
+// Security: application_id has real entropy and works alone (it's effectively
+// a bearer token only the candidate has). Looking up by contact info alone
+// would let anyone who knows/guesses a phone number or email pull someone
+// else's full application — so that path requires BOTH email AND phone to
+// match the same record, not either one individually.
+app.get('/api/apply/status', applyLimiter, ah(async (req, res) => {
   const { application_id, email, phone } = req.query;
   let row;
   if (application_id) {
     row = await db.get('SELECT * FROM applicants WHERE application_id = $1', [application_id]);
-  } else {
+  } else if (email && phone) {
     row = await db.get(
-      `SELECT * FROM applicants WHERE (email = $1 AND email != '') OR (phone = $2 AND phone != '') ORDER BY id DESC LIMIT 1`,
-      [email || '', phone || '']
+      `SELECT * FROM applicants WHERE email = $1 AND phone = $2 AND email != '' AND phone != '' ORDER BY id DESC LIMIT 1`,
+      [email, phone]
     );
+  } else {
+    return res.status(400).json({ error: 'Provide an application ID, or both email and phone.' });
   }
   if (!row) return res.status(404).json({ error: 'Not found' });
   res.json(sanitizeForCandidate(row));
@@ -392,6 +435,14 @@ app.patch('/api/admin/applicants/:id', requireAuth, ah(async (req, res) => {
   const values = present.map(f => req.body[f]);
   values.push(req.params.id);
   await db.query(`UPDATE applicants SET ${sets.join(', ')}, updated_at = NOW() WHERE id = $${values.length}`, values);
+  res.json({ ok: true });
+}));
+
+// Admin-only override: lets this specific in-progress application bypass the
+// duplicate-email/phone block on next submit (PRD §29 — "Admin may still
+// manually allow duplicates where necessary").
+app.post('/api/admin/applicants/:id/allow-duplicate', requireAuth, ah(async (req, res) => {
+  await db.query(`UPDATE applicants SET duplicate_override = 1, updated_at = NOW() WHERE id = $1`, [req.params.id]);
   res.json({ ok: true });
 }));
 

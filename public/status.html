@@ -82,7 +82,7 @@
   <div class="wrap">
     <a href="/" class="back-link"><i data-lucide="arrow-left"></i> Back to job posting</a>
     <h1><span class="h-ico"><i data-lucide="search-check"></i></span> Check your status</h1>
-    <p class="lede">Enter your Application ID, or the email/phone you applied with.</p>
+    <p class="lede">Enter your Application ID, or the email and phone number you applied with.</p>
   </div>
 </div>
 
@@ -92,7 +92,7 @@
       <label>Application ID</label>
       <div class="input-wrap"><i data-lucide="hash"></i><input id="appId" placeholder="APP-XXXXXX"></div>
     </div>
-    <div class="divider">or</div>
+    <div class="divider">or both of</div>
     <div class="field">
       <label>Email address</label>
       <div class="input-wrap"><i data-lucide="mail"></i><input id="email" type="email" placeholder="you@example.com"></div>
@@ -134,8 +134,8 @@ document.getElementById('lookupBtn').addEventListener('click', async () => {
   const err = document.getElementById('error');
   err.innerHTML = '';
 
-  if (!appId && !email && !phone) {
-    err.innerHTML = '<i data-lucide="alert-circle"></i> Please enter an Application ID, email, or phone.';
+  if (!appId && !(email && phone)) {
+    err.innerHTML = '<i data-lucide="alert-circle"></i> Please enter your Application ID, or both your email and phone number.';
     lucide.createIcons();
     return;
   }
