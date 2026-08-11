@@ -4,40 +4,39 @@ A lightweight, mobile-first recruitment portal for hiring Telesales Representati
 
 ## Stack
 
-- **Backend:** Node.js + Express (exported as a handler so it runs as a Vercel serverless function, or as a normal long-running server anywhere else)
-- **Database:** Postgres, hosted on [Supabase](https://supabase.com) (via `pg`)
+- **Backend:** Node.js + Express — a single process serves both the frontend and the API, works as a normal long-running server anywhere (VPS, container, PaaS), and also exports the app for Vercel-style serverless if you want that instead
+- **Database:** Postgres via `pg` — not tied to any provider. Supabase, Neon, Railway, RDS, self-hosted, whatever you point `DATABASE_URL` at
 - **Frontend:** Vanilla HTML/CSS/JS (no framework, no bundler)
 - **Auth:** Cookie sessions + bcrypt for the admin console
-- **File uploads:** CVs stored in Supabase Storage (public bucket, auto-created on first upload)
+- **File uploads:** CVs stored via a pluggable driver (`src/storage.js`) — `local` disk by default (works on any normal host, no external service needed), or `s3` for any S3-compatible object store (AWS S3, R2, Backblaze B2, MinIO, Supabase Storage's S3 endpoint, etc.) if you're on a host with no persistent disk
 - **Notifications:** Email via **AWS SES**, WhatsApp via the **Meta WhatsApp Business Cloud API** — both wired up in `src/notify.js` (same providers/env-var naming as the AfroStore codebase). Every send is logged to the Notification Log as `sent`, `failed`, or `simulated` (when credentials aren't configured, e.g. local dev) — see below for setup
 
 ## Getting started
 
 ```bash
 npm install
-cp .env.example .env      # then fill in SESSION_SECRET, DATABASE_URL, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY
+cp .env.example .env      # then fill in SESSION_SECRET and DATABASE_URL at minimum
 npm start
 ```
 
-The database schema and seed data (admin user, default job posting, notification templates) are created automatically the first time the app handles a request.
+The database schema and seed data (admin user, default job posting, notification templates) are created automatically the first time the app handles a request. CV storage defaults to local disk under `data/cv-uploads` — nothing else to set up for local dev.
 
-## Deploying: Vercel + Supabase
+## Deploying
 
-**1. Create a Supabase project**
-- [supabase.com](https://supabase.com) → New project.
-- Project Settings → API: copy the **Project URL** and the **`service_role` key** (not the `anon` key — the server needs write access to Storage and bypasses RLS with this key).
-- Project Settings → Database → Connection string → select the **Transaction pooler** (port `6543`). Serverless functions open/close connections per-invocation, so you need the pooler, not the direct connection (port `5432`), or you'll exhaust Postgres' connection limit.
+This is a normal Node app — `npm start` runs `node server.js`, which listens on `$PORT` and serves everything itself. Deploy it anywhere that runs Node: a VPS, a container, Railway, Render, Fly, or Vercel (the app also exports itself as a handler for that).
 
-**2. Set environment variables in Vercel**
+**1. Database** — point `DATABASE_URL` at any Postgres instance. If your provider offers a pooled connection string for serverless (Supabase's "Transaction pooler", Neon's pooled endpoint), prefer that one when deploying to a serverless/short-lived-connection host; a normal direct connection is fine everywhere else.
 
-Project → Settings → Environment Variables, add:
+**2. CV storage** — leave `STORAGE_DRIVER=local` if your host has persistent disk (a VPS, a container with a volume, most PaaS). Switch to `STORAGE_DRIVER=s3` only if you're on serverless with no disk to write to — then point it at any S3-compatible bucket (see `.env.example` for the exact variables).
+
+**3. Set environment variables** on whatever host you're using:
+
 | Key | Value |
 |---|---|
-| `DATABASE_URL` | the pooler connection string from step 1 |
-| `SUPABASE_URL` | Project URL |
-| `SUPABASE_SERVICE_ROLE_KEY` | service_role key |
+| `DATABASE_URL` | your Postgres connection string |
 | `SESSION_SECRET` | a long random string |
-| `SUPABASE_CV_BUCKET` | optional, defaults to `cvs` |
+| `STORAGE_DRIVER` | `local` (default) or `s3` |
+| `CV_SIGNING_SECRET` | a long random string (falls back to `SESSION_SECRET` if unset) |
 | `AWS_ACCESS_KEY_ID` | IAM user/role key with `ses:SendEmail` permission |
 | `AWS_SECRET_ACCESS_KEY` | matching secret key |
 | `AWS_SES_REGION` | e.g. `us-east-1` — must be a region where SES is set up |
@@ -48,17 +47,7 @@ Project → Settings → Environment Variables, add:
 
 Any of the email/WhatsApp variables can be left unset — that channel just logs as `simulated` instead of failing.
 
-**3. Deploy**
-
-```bash
-npm i -g vercel   # if you don't have it
-vercel             # first deploy, follow the prompts
-vercel --prod
-```
-
-Or just connect the GitHub repo in the Vercel dashboard and let it auto-deploy on push — `vercel.json` in this repo already routes all traffic to `server.js` so no extra config is needed there.
-
-The first request after deploy creates the Postgres tables, seeds the admin user (`admin@company.com` / `Telesales2026!`), default job posting, and notification templates, and creates the `cvs` Storage bucket — nothing to run manually.
+The first request after deploy creates the Postgres tables and seeds the admin user (`admin@company.com` / `Telesales2026!`), default job posting, and notification templates — nothing to run manually.
 
 - Careers page → http://localhost:3000/
 - Application status lookup → http://localhost:3000/status.html
@@ -95,7 +84,7 @@ If either provider's env vars are absent, that channel is simply logged as `simu
 ## Before deploying to production
 
 - Change `SESSION_SECRET` to a long random string.
-- Change the seeded admin password (`Telesales2026!`) immediately after first login — there's currently no in-app "change password" flow, so update it directly via SQL against the `admins` table (Supabase's SQL editor works fine).
+- Change the seeded admin password (`Telesales2026!`) immediately after first login — there's currently no in-app "change password" flow, so update it directly via SQL against the `admins` table (any Postgres client works).
 - Request SES production access (see above) — otherwise emails to real candidates will silently fail while still in the sandbox.
 - Vercel gives you HTTPS by default.
 
@@ -105,7 +94,7 @@ If either provider's env vars are absent, that channel is simply logged as `simu
 server.js              Express app + all API routes; exports the app for Vercel
 src/db.js               Postgres connection, schema, seed data (src/db.js's ready() runs once per warm instance)
 src/notify.js           Notification templating + AWS SES / WhatsApp Cloud API send + logging
-src/storage.js           Supabase Storage upload for CVs
+src/storage.js           Pluggable CV storage (local disk / S3-compatible)
 src/auth.js             Admin session middleware
 vercel.json             Routes all requests to server.js
 public/index.html       Careers page

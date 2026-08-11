@@ -10,7 +10,7 @@ const rateLimit = require('express-rate-limit');
 const db = require('./src/db');
 const { requireAuth } = require('./src/auth');
 const { sendNotification } = require('./src/notify');
-const { uploadCv, getCvSignedUrl } = require('./src/storage');
+const { uploadCv, getCvSignedUrl, DRIVER: storageDriverName, _localVerify: verifyLocalCv } = require('./src/storage');
 
 const nanoid = customAlphabet('0123456789ABCDEFGHJKLMNPQRSTUVWXYZ', 6);
 const app = express();
@@ -92,7 +92,8 @@ app.use('/api', async (req, res, next) => {
   }
 });
 
-// CV uploads go straight to Supabase Storage — memory storage only, no local disk.
+// Files are read into memory here regardless of storage driver; the driver
+// itself (src/storage.js) decides where the bytes actually end up.
 const upload = multer({
   storage: multer.memoryStorage(),
   limits: { fileSize: 5 * 1024 * 1024 }, // 5MB
@@ -427,6 +428,17 @@ app.get('/api/admin/applicants/:id/cv', requireAuth, ah(async (req, res) => {
   const url = await getCvSignedUrl(row.cv_url);
   res.json({ url, filename: row.cv_filename });
 }));
+
+// Streams a CV file when using the local-disk storage driver (default — see
+// src/storage.js). The key/expiry/signature are validated here rather than
+// via a session cookie, since this is the target of the short-lived signed
+// URL handed out above, not a page navigation carrying admin auth.
+app.get('/api/cv-file/:key', (req, res) => {
+  if (storageDriverName !== 'local') return res.status(404).end();
+  const filePath = verifyLocalCv(req.params.key, req.query.exp, req.query.sig);
+  if (!filePath) return res.status(403).json({ error: 'Link expired or invalid' });
+  res.sendFile(filePath);
+});
 
 app.get('/api/admin/applicants/:id', requireAuth, ah(async (req, res) => {
   const row = await db.get('SELECT * FROM applicants WHERE id = $1', [req.params.id]);
